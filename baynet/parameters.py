@@ -36,7 +36,7 @@ class ConditionalProbabilityTable:
 
     def sample(self, parent_values: np.ndarray) -> np.ndarray:
         if not self._scaled: raise ValueError("CPT use .rescale_probabilities() before sampling")
-        if not parent_values.shape[0] == self._n_parents: raise ValueError("Parent values shape don't match number of parents")
+        if not parent_values.shape[1] == self._n_parents: raise ValueError("Parent values shape don't match number of parents")
         random_vector = np.random.uniform(size=parent_values.shape[0])
         parent_values = list(map(tuple, parent_values))
         return _sample_cpt(self._array, parent_values, random_vector)
@@ -48,10 +48,3 @@ def _sample_cpt(cpt: np.ndarray, parent_values: List[Tuple[int, ...]], random_ve
         probs = cpt[parent_values[row_idx]]
         out_vector[row_idx] = np.argmax(random_vector[row_idx] < probs)
     return out_vector
-
-
-if __name__ == "__main__":
-    dag = Graph.from_modelstring("[A][B|C:D][C|D][D]")
-    dag.vs['levels'] = 3
-    cpt = ConditionalProbabilityTable(dag.vs[1])
-    cpt.rescale_probabilities()

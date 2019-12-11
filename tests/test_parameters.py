@@ -1,20 +1,29 @@
 from time import time
+from unittest.mock import patch
 import numpy as np
 import pytest
 from baynet.structure import Graph
 from baynet.parameters import ConditionalProbabilityTable, _sample_cpt
+from .utils import test_dag
 
-TEST_MODELSTRING = "[A][B|C:D][C|D][D]"
 
 def test_CPT_init():
-    dag = Graph.from_modelstring(TEST_MODELSTRING)
+    dag = test_dag()
     dag.vs['levels'] = 2
     cpt = ConditionalProbabilityTable(dag.vs[1])
     assert cpt._array.shape == (2, 2, 2)
     assert np.allclose(cpt._array, 0)
 
+    dag.add_vertex("E")
+    with pytest.raises(ValueError):
+        ConditionalProbabilityTable(dag.vs[dag.get_node_index("E")])
+    
+    dag.add_edge("E", "A")
+    with pytest.raises(ValueError):
+        ConditionalProbabilityTable(dag.vs[dag.get_node_index("A")])
+
 def test_CPT_rescale():
-    dag = Graph.from_modelstring(TEST_MODELSTRING)
+    dag = test_dag()
     for n_levels in [1,2,3,4]:
         dag.vs['levels'] = n_levels
         cpt = ConditionalProbabilityTable(dag.vs[1])
@@ -32,7 +41,7 @@ def test_CPT_rescale():
             assert cpt[i,j,0] <= cpt[i,j,1] <= cpt[i,j,2]
 
 def test_CPT_sample_exceptions():
-    dag = Graph.from_modelstring(TEST_MODELSTRING)
+    dag = test_dag()
     dag.vs['levels'] = 2
     cpt = ConditionalProbabilityTable(dag.vs[1])
     with pytest.raises(ValueError):
@@ -42,7 +51,7 @@ def test_CPT_sample_exceptions():
         cpt.sample(np.zeros((10,10))[[]])
 
 def test_sample_cpt():
-    dag = Graph.from_modelstring(TEST_MODELSTRING)
+    dag = test_dag()
     dag.vs['levels'] = 2
     cpt = ConditionalProbabilityTable(dag.vs[1])
     cpt._array[0,0,:] = [0.5, 0.5]
@@ -61,7 +70,7 @@ def test_sample_cpt():
         [1, 1],
         [1, 1]
     ])
-    parent_values = list(map(tuple, parent_values))
+    parent_values_tuples = list(map(tuple, parent_values))
 
     random_vector = np.repeat([[0.1, 0.9]], 4, axis=0).flatten()
     
@@ -70,7 +79,11 @@ def test_sample_cpt():
     ])
 
     assert np.all(
-        _sample_cpt(cpt._array, parent_values, random_vector) == expected_output
+        _sample_cpt(cpt._array, parent_values_tuples, random_vector) == expected_output
+    )
+    np.random.seed(0) # TODO: replace with mocking np.random.normal
+    assert np.all(
+        cpt.sample(parent_values) == [1., 1., 0., 0., 1., 1., 0., 1.]
     )
 
 def time_sample_cpt():

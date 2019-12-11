@@ -46,6 +46,20 @@ class Graph(igraph.Graph):
         dag.add_edges(_edges_from_modelstring(modelstring))
         return dag
 
+    @classmethod
+    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]):
+        """Instantiate a Graph object from an adjacency matrix"""
+        if isinstance(amat, np.ndarray):
+            amat = amat.tolist()
+        if not len(colnames) == len(amat):
+            raise ValueError("Dimensions of amat and colnames do not match")
+        if not isinstance(colnames, list):
+            raise ValueError(f"Graph.from_amat() expected `colnames` of type list, but got {type(colnames)}")
+        dag = cls.Adjacency(amat)
+        dag.vs['name'] = colnames
+        # dag.add_vertices(_nodes_sorted(colnames))
+        return dag
+
     @property
     def nodes(self) -> Set[str]:
         """Returns a set of the names of all nodes in the network"""
@@ -77,7 +91,7 @@ class Graph(igraph.Graph):
     def get_node_name(self, node: int) -> str:
         """Converts node index to node name"""
         return self.vs[node]['name']
-    
+
     def get_node_index(self, node: str) -> int:
         """Converts node name to node index"""
         return self.vs['name'].index(node)
@@ -119,7 +133,12 @@ class Graph(igraph.Graph):
         else:
             return self.vs[sorted(ancestors)]
 
+    def get_v_structures(self, include_shielded: bool = False) -> List[Tuple[str, str, str]]:
+        self.v_structures = []
+        # self.motifs_randesu(callback=motif_callback)
+        #breakpoint()
+        # for node in self.vs:
+            
 
-
-
-
+def motif_callback(graph: Graph, vertices: List[igraph.Vertex], isomorphy_class):
+    breakpoint()
