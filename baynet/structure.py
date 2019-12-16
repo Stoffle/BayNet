@@ -1,5 +1,6 @@
-from typing import List, Union, Tuple, Set
 import warnings
+from itertools import combinations
+from typing import List, Union, Tuple, Set
 import igraph
 import numpy as np
 from numba import njit
@@ -104,6 +105,7 @@ class Graph(igraph.Graph):
         if (source, target) in self.edges:
             raise ValueError(f"Edge {source}->{target} already exists in Graph")
         super().add_edge(source, target)
+        assert self.is_dag()
 
     def add_edges(self, edges: List[Tuple[str, str]]):
         """Add multiple edges from a list of tuples, each containing (from, to) as strings"""
@@ -113,6 +115,7 @@ class Graph(igraph.Graph):
             if len(edges) != len(set(edges)):
                 raise ValueError("Edges list contains duplicates")
         super().add_edges(edges)
+        assert self.is_dag()
 
     def get_numpy_adjacency(self, skeleton: bool = False) -> np.ndarray:
         """Obtain adjacency matrix as a numpy (boolean) array"""
@@ -121,24 +124,43 @@ class Graph(igraph.Graph):
         else:
             return np.array(list(self.get_adjacency()), dtype=bool)
 
-    def get_ancestors(self, node: Union[str, int]) -> igraph.VertexSeq:
+    def get_ancestors(self, node: Union[str, int], only_parents=False) -> igraph.VertexSeq:
         """Return an igraph.VertexSeq of ancestors for given node (string or node index)"""
         if isinstance(node, str):
             # Convert name to index
             node = self.get_node_index(node)
-        ancestors = list(self.neighborhood(vertices=node, order=len(self.vs), mode="IN"))
+        order = 1 if only_parents else len(self.vs)
+        ancestors = list(self.neighborhood(vertices=node, order=order, mode="IN"))
         ancestors.remove(node)
         if len(ancestors) <= 1:
             return igraph.VertexSeq(self, ancestors)
         else:
             return self.vs[sorted(ancestors)]
 
+    def are_neighbours(self, a: igraph.Vertex, b: igraph.Vertex):
+        return (a.index in self.neighborhood(vertices=b))
+
     def get_v_structures(self, include_shielded: bool = False) -> List[Tuple[str, str, str]]:
-        self.v_structures = []
-        # self.motifs_randesu(callback=motif_callback)
-        #breakpoint()
-        # for node in self.vs:
+        """Return a list of the Graph's v-structures in tuple form; (a,b,c) = a->b<-c"""
+        v_structures: List[Tuple[str, str, str]] = []
+        for node in self.nodes:
+            all_parents = self.get_ancestors(node, only_parents=True)
+            all_pairs = combinations(all_parents, 2)
+            all_pairs = [sorted(pair) for pair in all_pairs]
+            if include_shielded:
+                node_v_structures = [(a['name'], node, b['name']) for a,b in all_pairs]
+            else:
+                node_v_structures = [(a['name'], node, b['name']) for a,b in all_pairs if not self.are_neighbours(a, b)]
+            v_structures += node_v_structures
+            # if not include_shielded:
+        return v_structures
+        # from functools import partial
+        # self.v_structures = []
+        # self.motifs_randesu(callback=partial(motif_callback, include_shielded))
+        # return self.v_structures
+
             
 
-def motif_callback(graph: Graph, vertices: List[igraph.Vertex], isomorphy_class):
-    breakpoint()
+# def motif_callback(include_shielded: bool, graph: Graph, vertices: List[int], isomorphy_class: int):
+#     if (include_shielded and isomorphy_class == 7) or (isomorphy_class == 2):
+#         graph.v_structures.append(tuple(graph.get_node_name(v_idx) for v_idx in vertices))

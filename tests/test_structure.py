@@ -94,8 +94,21 @@ def test_Graph_get_node_name_or_index():
         assert dag.get_node_name(index) == name
         assert dag.get_node_index(name) == index
 
+def test_Graph_are_neighbours():
+    dag = test_dag()
+    a,b,c,d = dag.vs
+    assert not dag.are_neighbours(a, b)
+    assert not dag.are_neighbours(a, c)
+    assert not dag.are_neighbours(a, d)
+    assert dag.are_neighbours(b, c)
+    assert dag.are_neighbours(b, d)
+    assert dag.are_neighbours(c, d)
+
 def test_Graph_get_v_structures():
     dag = test_dag()
-    assert partial_dag().get_v_structures() == []
+    part_dag = partial_dag()
+    reversed_dag = test_dag(True)
+    assert partial_dag().get_v_structures() == [("C", "B", "D")]
     assert dag.get_v_structures() == []
-    assert dag.get_v_structures(True) == [()]
+    assert dag.get_v_structures(True) == [("C", "B", "D")]
+    assert reversed_dag.get_v_structures(True) == [("B", "D", "C")]
