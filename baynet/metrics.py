@@ -15,6 +15,7 @@ def _check_args(true_graph: Graph, learnt_graph: Graph, skeleton: bool = False) 
 
 
 def false_positive_edges(true_graph: Graph, learnt_graph: Graph, skeleton: bool) -> Set[str]:
+    """Get the set of edges in learnt_graph but not true_graph"""
     _check_args(true_graph, learnt_graph, skeleton)
     if not skeleton:
         return learnt_graph.edges - true_graph.edges
@@ -23,6 +24,7 @@ def false_positive_edges(true_graph: Graph, learnt_graph: Graph, skeleton: bool)
 
 
 def true_positive_edges(true_graph: Graph, learnt_graph: Graph, skeleton: bool) -> Set[str]:
+    """Get the set of edges in both learnt_graph and true_graph"""
     _check_args(true_graph, learnt_graph, skeleton)
     if not skeleton:
         return true_graph.edges & learnt_graph.edges
@@ -31,6 +33,7 @@ def true_positive_edges(true_graph: Graph, learnt_graph: Graph, skeleton: bool) 
 
 
 def false_negative_edges(true_graph: Graph, learnt_graph: Graph, skeleton: bool) -> Set[str]:
+    """Get the set of edges in true_graph but not learnt_graph"""
     _check_args(true_graph, learnt_graph, skeleton)
     if not skeleton:
         return true_graph.edges - learnt_graph.edges
@@ -39,6 +42,7 @@ def false_negative_edges(true_graph: Graph, learnt_graph: Graph, skeleton: bool)
 
 
 def precision(true_graph: Graph, learnt_graph: Graph, skeleton: bool) -> float:
+    """Compute precision (DAG or skeleton) of a learnt graph"""
     _check_args(true_graph, learnt_graph, skeleton)
     TP = len(true_positive_edges(true_graph, learnt_graph, skeleton))
     all_learnt = len(learnt_graph.edges) if not skeleton else len(learnt_graph.skeleton_edges)
@@ -46,6 +50,7 @@ def precision(true_graph: Graph, learnt_graph: Graph, skeleton: bool) -> float:
 
 
 def recall(true_graph: Graph, learnt_graph: Graph, skeleton: bool) -> float:
+    """Compute recall (DAG or skeleton) of a learnt graph"""
     args = (true_graph, learnt_graph, skeleton)
     _check_args(*args)
     TP = len(true_positive_edges(*args))
@@ -54,6 +59,7 @@ def recall(true_graph: Graph, learnt_graph: Graph, skeleton: bool) -> float:
 
 
 def f1(true_graph: Graph, learnt_graph: Graph, skeleton: bool) -> float:
+    """Compute F1 score (DAG or skeleton) of a learnt graph"""
     args = (true_graph, learnt_graph, skeleton)
     _check_args(*args)
     prec = precision(*args)
@@ -62,6 +68,7 @@ def f1(true_graph: Graph, learnt_graph: Graph, skeleton: bool) -> float:
 
 
 def shd(true_graph: Graph, learnt_graph: Graph, skeleton: bool) -> int:
+    """Compute structural hamming distance (DAG or skeleton) of a learnt graph"""
     _check_args(true_graph, learnt_graph)
     missing = len(false_negative_edges(true_graph, learnt_graph, True)) / 2
     added = len(false_positive_edges(true_graph, learnt_graph, True)) / 2
@@ -72,11 +79,13 @@ def shd(true_graph: Graph, learnt_graph: Graph, skeleton: bool) -> int:
 def false_positive_v_structures(
     true_graph: Graph, learnt_graph: Graph
 ) -> Set[Tuple[str, str, str]]:
+    """Get the set of v-structures in learnt_graph but not true_graph"""
     _check_args(true_graph, learnt_graph)
     return learnt_graph.get_v_structures() - true_graph.get_v_structures()
 
 
 def true_positive_v_structures(true_graph: Graph, learnt_graph: Graph) -> Set[Tuple[str, str, str]]:
+    """Get the set of v-structures in both learnt_graph and true_graph"""
     _check_args(true_graph, learnt_graph)
     return learnt_graph.get_v_structures() & true_graph.get_v_structures()
 
@@ -84,11 +93,13 @@ def true_positive_v_structures(true_graph: Graph, learnt_graph: Graph) -> Set[Tu
 def false_negative_v_structures(
     true_graph: Graph, learnt_graph: Graph
 ) -> Set[Tuple[str, str, str]]:
+    """Get the set of v-structures in true_graph but not learnt_graph"""
     _check_args(true_graph, learnt_graph)
     return true_graph.get_v_structures() - learnt_graph.get_v_structures()
 
 
 def v_precision(true_graph: Graph, learnt_graph: Graph) -> float:
+    """Compute the v-structure precision of a learnt graph"""
     _check_args(true_graph, learnt_graph)
     TP = len(true_positive_v_structures(true_graph, learnt_graph))
     all_learnt = len(learnt_graph.get_v_structures())
@@ -96,6 +107,7 @@ def v_precision(true_graph: Graph, learnt_graph: Graph) -> float:
 
 
 def v_recall(true_graph: Graph, learnt_graph: Graph) -> float:
+    """Compute the v-structure recall of a learnt graph"""
     _check_args(true_graph, learnt_graph)
     TP = len(true_positive_v_structures(true_graph, learnt_graph))
     FN = len(false_negative_v_structures(true_graph, learnt_graph))
@@ -103,6 +115,7 @@ def v_recall(true_graph: Graph, learnt_graph: Graph) -> float:
 
 
 def v_f1(true_graph: Graph, learnt_graph: Graph) -> float:
+    """Compute the v-structure F1 score of a learnt graph"""
     _check_args(true_graph, learnt_graph)
     prec = v_precision(true_graph, learnt_graph)
     rec = v_recall(true_graph, learnt_graph)
