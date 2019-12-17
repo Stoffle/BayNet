@@ -1,12 +1,12 @@
-import warnings
+"""Graph object."""
+from __future__ import annotations
 from itertools import combinations
 from typing import List, Union, Tuple, Set
 import igraph
 import numpy as np
-from numba import njit
 
 
-def _nodes_sorted(nodes: List[Union[int, str]]) -> List[Union[int, str]]:
+def _nodes_sorted(nodes: Union[List[int], List[str], List[object]]) -> List[str]:
     return sorted([str(node) for node in nodes])
 
 
@@ -32,19 +32,21 @@ def _edges_from_modelstring(modelstring: str) -> List[Tuple[str, str]]:
 
 
 class Graph(igraph.Graph):
-    # pylint: disable=unsubscriptable-object, not-an-iterable
+    """Graph object, built around igraph.Graph, adapted for bayesian networks."""
+
+    # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
     def __init__(self, *args, **kwargs) -> None:
+        """Create a graph object."""
         if 'directed' not in kwargs:
             kwargs['directed'] = True
-        elif kwargs['directed'] == False:
+        elif not kwargs['directed']:
             raise ValueError("Graph() can only be used with directed=True")
         kwargs['vertex_attrs'] = {'CPD': None, 'levels': None}
         super().__init__(*args, **kwargs)
-        self.metrics = {}
 
     @classmethod
     def from_modelstring(cls, modelstring: str) -> Graph:
-        """Instantiate a Graph object from a modelstring"""
+        """Instantiate a Graph object from a modelstring."""
         dag = cls()
         dag.add_vertices(_nodes_from_modelstring(modelstring))
         dag.add_edges(_edges_from_modelstring(modelstring))
@@ -52,7 +54,7 @@ class Graph(igraph.Graph):
 
     @classmethod
     def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> Graph:
-        """Instantiate a Graph object from an adjacency matrix"""
+        """Instantiate a Graph object from an adjacency matrix."""
         if isinstance(amat, np.ndarray):
             amat = amat.tolist()
         if not len(colnames) == len(amat):
@@ -68,43 +70,43 @@ class Graph(igraph.Graph):
 
     @property
     def nodes(self) -> Set[str]:
-        """Returns a set of the names of all nodes in the network"""
+        """Return a set of the names of all nodes in the network."""
         return {v['name'] for v in self.vs}
 
     @property
     def edges(self) -> Set[Tuple[str, str]]:
-        """Returns all edges in the Graph"""
+        """Return all edges in the Graph."""
         if self.is_directed():
             return self.directed_edges
-        else:
-            return self.skeleton_edges
+        return self.skeleton_edges
 
     @property
     def skeleton_edges(self) -> Set[Tuple[str, str]]:
-        """Returns all edges in the skeleton of the Graph"""
+        """Return all edges in the skeleton of the Graph."""
         return self.reversed_edges | self.directed_edges
 
     @property
     def directed_edges(self) -> Set[Tuple[str, str]]:
-        """Returns forward edges in the Graph"""
+        """Return forward edges in the Graph."""
         return {(self.vs[e.source]['name'], self.vs[e.target]['name']) for e in self.es}
 
     @property
     def reversed_edges(self) -> Set[Tuple[str, str]]:
-        """Returns reversed edges in the Graph"""
+        """Return reversed edges in the Graph."""
         return {(self.vs[e.target]['name'], self.vs[e.source]['name']) for e in self.es}
 
     def get_node_name(self, node: int) -> str:
-        """Converts node index to node name"""
+        """Convert node index to node name."""
         return self.vs[node]['name']
 
     def get_node_index(self, node: str) -> int:
-        """Converts node name to node index"""
+        """Convert node name to node index."""
         return self.vs['name'].index(node)
 
-    def add_edge(self, source: str, target: str):
+    def add_edge(self, source: str, target: str) -> None:
         """
-        Add a single edge, using node names (as strings)
+        Add a single edge, using node names (as strings).
+
         Overrides: igraph.Graph.add_edge
         """
         if (source, target) in self.edges:
@@ -113,7 +115,7 @@ class Graph(igraph.Graph):
         assert self.is_dag()
 
     def add_edges(self, edges: List[Tuple[str, str]]) -> None:
-        """Add multiple edges from a list of tuples, each containing (from, to) as strings"""
+        """Add multiple edges from a list of tuples, each containing (from, to) as strings."""
         for source, target in edges:
             if (source, target) in self.edges:
                 raise ValueError(f"Edge {source}->{target} already exists in Graph")
@@ -123,14 +125,13 @@ class Graph(igraph.Graph):
         assert self.is_dag()
 
     def get_numpy_adjacency(self, skeleton: bool = False) -> np.ndarray:
-        """Obtain adjacency matrix as a numpy (boolean) array"""
+        """Obtain adjacency matrix as a numpy (boolean) array."""
         if skeleton:
             return self.as_undirected().get_numpy_adjacency()
-        else:
-            return np.array(list(self.get_adjacency()), dtype=bool)
+        return np.array(list(self.get_adjacency()), dtype=bool)
 
-    def get_ancestors(self, node: Union[str, int], only_parents=False) -> igraph.VertexSeq:
-        """Return an igraph.VertexSeq of ancestors for given node (string or node index)"""
+    def get_ancestors(self, node: Union[str, int], only_parents: bool = False) -> igraph.VertexSeq:
+        """Return an igraph.VertexSeq of ancestors for given node (string or node index)."""
         if isinstance(node, str):
             # Convert name to index
             node = self.get_node_index(node)
@@ -139,14 +140,14 @@ class Graph(igraph.Graph):
         ancestors.remove(node)
         if len(ancestors) <= 1:
             return igraph.VertexSeq(self, ancestors)
-        else:
-            return self.vs[sorted(ancestors)]
+        return self.vs[sorted(ancestors)]
 
-    def are_neighbours(self, a: igraph.Vertex, b: igraph.Vertex) -> bool:
-        return a.index in self.neighborhood(vertices=b)
+    def are_neighbours(self, node_a: igraph.Vertex, node_b: igraph.Vertex) -> bool:
+        """Check if two nodes are neighbours in the Graph."""
+        return node_a.index in self.neighborhood(vertices=node_b)
 
     def get_v_structures(self, include_shielded: bool = False) -> Set[Tuple[str, str, str]]:
-        """Return a list of the Graph's v-structures in tuple form; (a,b,c) = a->b<-c"""
+        """Return a list of the Graph's v-structures in tuple form; (a,b,c) = a->b<-c."""
         v_structures: List[Tuple[str, str, str]] = []
         for node in self.nodes:
             all_parents = self.get_ancestors(node, only_parents=True)
@@ -168,6 +169,10 @@ class Graph(igraph.Graph):
         # return self.v_structures
 
 
-# def motif_callback(include_shielded: bool, graph: Graph, vertices: List[int], isomorphy_class: int):
+# def motif_callback(
+#   include_shielded: bool,
+#   graph: Graph, vertices: List[int],
+#   isomorphy_class: int
+#   ):
 #     if (include_shielded and isomorphy_class == 7) or (isomorphy_class == 2):
 #         graph.v_structures.append(tuple(graph.get_node_name(v_idx) for v_idx in vertices))

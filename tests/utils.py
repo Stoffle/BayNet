@@ -1,3 +1,4 @@
+import numpy as np
 from baynet.structure import Graph
 
 TEST_MODELSTRING = "[A][B|C:D][C|D][D]"
@@ -13,3 +14,7 @@ def test_dag(reversed: bool = False) -> Graph:
 
 def partial_dag() -> Graph:
     return Graph.from_modelstring("[A][B|C:D][C][D]")
+
+
+def empty_dag() -> Graph:
+    return Graph.from_amat(np.zeros((4, 4)), list("ABCD"))

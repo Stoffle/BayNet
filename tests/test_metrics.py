@@ -61,14 +61,14 @@ def test_recall():
     assert metrics.recall(dag1, dag3, False) == 2 / 3
 
 
-def test_f1():
+def test_f1_score():
     dag1 = test_dag()
     dag2 = test_dag(reversed=True)
     dag3 = partial_dag()
-    assert metrics.f1(dag1, dag1, True) == 1.0
-    assert metrics.f1(dag1, dag2, True) == 1.0
-    assert metrics.f1(dag1, dag1, False) == 1.0
-    assert metrics.f1(dag1, dag2, False) == 0.0
+    assert metrics.f1_score(dag1, dag1, True) == 1.0
+    assert metrics.f1_score(dag1, dag2, True) == 1.0
+    assert metrics.f1_score(dag1, dag1, False) == 1.0
+    assert metrics.f1_score(dag1, dag2, False) == 0.0
 
 
 def test_dag_shd():
