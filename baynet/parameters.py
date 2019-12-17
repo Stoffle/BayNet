@@ -3,8 +3,10 @@ import numpy as np
 import igraph
 from .structure import Graph
 
+
 class ConditionalProbabilityTable:
     """Conditional probability table for categorical data"""
+
     def __init__(self, node: igraph.Vertex) -> None:
         self._scaled = False
         # sorted_parents = sorted(node.neighbors(mode="in"), key = lambda x: x['name'])
@@ -35,14 +37,18 @@ class ConditionalProbabilityTable:
         self._scaled = True
 
     def sample(self, parent_values: np.ndarray) -> np.ndarray:
-        if not self._scaled: raise ValueError("CPT use .rescale_probabilities() before sampling")
-        if not parent_values.shape[1] == self._n_parents: raise ValueError("Parent values shape don't match number of parents")
+        if not self._scaled:
+            raise ValueError("CPT use .rescale_probabilities() before sampling")
+        if not parent_values.shape[1] == self._n_parents:
+            raise ValueError("Parent values shape don't match number of parents")
         random_vector = np.random.uniform(size=parent_values.shape[0])
         parent_values = list(map(tuple, parent_values))
         return _sample_cpt(self._array, parent_values, random_vector)
 
 
-def _sample_cpt(cpt: np.ndarray, parent_values: List[Tuple[int, ...]], random_vector: np.ndarray) -> np.ndarray:
+def _sample_cpt(
+    cpt: np.ndarray, parent_values: List[Tuple[int, ...]], random_vector: np.ndarray
+) -> np.ndarray:
     out_vector = np.zeros(random_vector.shape)
     for row_idx in range(random_vector.shape[0]):
         probs = cpt[parent_values[row_idx]]

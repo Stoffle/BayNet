@@ -5,15 +5,19 @@ import igraph
 import numpy as np
 from numba import njit
 
+
 def _nodes_sorted(nodes: List[Union[int, str]]) -> List[Union[int, str]]:
     return sorted([str(node) for node in nodes])
+
 
 def _nodes_with_parents(modelstring: str) -> List[str]:
     return modelstring.strip().strip("[]]").split("][")
 
+
 def _nodes_from_modelstring(modelstring: str) -> List[str]:
     nodes = [node.split("|")[0] for node in _nodes_with_parents(modelstring)]
     return _nodes_sorted(nodes)
+
 
 def _edges_from_modelstring(modelstring: str) -> List[Tuple[str, str]]:
     edges: List[Tuple[str, str]] = []
@@ -23,10 +27,9 @@ def _edges_from_modelstring(modelstring: str) -> List[Tuple[str, str]]:
         except ValueError:
             continue
         for parent in parents.split(":"):
-            edges.append(
-                (parent, node)
-            )
+            edges.append((parent, node))
     return edges
+
 
 class Graph(igraph.Graph):
     # pylint: disable=unsubscriptable-object, not-an-iterable
@@ -55,7 +58,9 @@ class Graph(igraph.Graph):
         if not len(colnames) == len(amat):
             raise ValueError("Dimensions of amat and colnames do not match")
         if not isinstance(colnames, list):
-            raise ValueError(f"Graph.from_amat() expected `colnames` of type list, but got {type(colnames)}")
+            raise ValueError(
+                f"Graph.from_amat() expected `colnames` of type list, but got {type(colnames)}"
+            )
         dag = cls.Adjacency(amat)
         dag.vs['name'] = colnames
         # dag.add_vertices(_nodes_sorted(colnames))
@@ -138,9 +143,9 @@ class Graph(igraph.Graph):
             return self.vs[sorted(ancestors)]
 
     def are_neighbours(self, a: igraph.Vertex, b: igraph.Vertex):
-        return (a.index in self.neighborhood(vertices=b))
+        return a.index in self.neighborhood(vertices=b)
 
-    def get_v_structures(self, include_shielded: bool = False) -> List[Tuple[str, str, str]]:
+    def get_v_structures(self, include_shielded: bool = False) -> Set[Tuple[str, str, str]]:
         """Return a list of the Graph's v-structures in tuple form; (a,b,c) = a->b<-c"""
         v_structures: List[Tuple[str, str, str]] = []
         for node in self.nodes:
@@ -148,18 +153,20 @@ class Graph(igraph.Graph):
             all_pairs = combinations(all_parents, 2)
             all_pairs = [sorted(pair) for pair in all_pairs]
             if include_shielded:
-                node_v_structures = [(a['name'], node, b['name']) for a,b in all_pairs]
+                node_v_structures = [(a['name'], node, b['name']) for a, b in all_pairs]
             else:
-                node_v_structures = [(a['name'], node, b['name']) for a,b in all_pairs if not self.are_neighbours(a, b)]
+                node_v_structures = [
+                    (a['name'], node, b['name'])
+                    for a, b in all_pairs
+                    if not self.are_neighbours(a, b)
+                ]
             v_structures += node_v_structures
-            # if not include_shielded:
-        return v_structures
+        return set(v_structures)
         # from functools import partial
         # self.v_structures = []
         # self.motifs_randesu(callback=partial(motif_callback, include_shielded))
         # return self.v_structures
 
-            
 
 # def motif_callback(include_shielded: bool, graph: Graph, vertices: List[int], isomorphy_class: int):
 #     if (include_shielded and isomorphy_class == 7) or (isomorphy_class == 2):
