@@ -1,18 +1,7 @@
-import platform
-import subprocess
-from pathlib import Path
-from typing import List, Dict
-
 from setuptools import setup, find_packages
-from setuptools.command.develop import develop
-from setuptools.command.install import install
-
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
-
-PY_V = platform.python_version().replace(".", "")[:2]
-
 
 setup(
     name="BayNet",
@@ -23,8 +12,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/Stoffle/BayNet",
-    packages=find_packages(),
-    python_requires=">=3.6",
+    packages=find_packages(exclude=("tests",)),
+    python_requires=">=3.7",
     install_requires=["python-igraph >= 0.7.0", "numpy >= 1.17.2", "pandas >= 0.25",],
     extras_require={
         "dev": [
