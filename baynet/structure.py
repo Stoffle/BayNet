@@ -33,7 +33,7 @@ def _edges_from_modelstring(modelstring: str) -> List[Tuple[str, str]]:
 
 class Graph(igraph.Graph):
     # pylint: disable=unsubscriptable-object, not-an-iterable
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         if 'directed' not in kwargs:
             kwargs['directed'] = True
         elif kwargs['directed'] == False:
@@ -43,7 +43,7 @@ class Graph(igraph.Graph):
         self.metrics = {}
 
     @classmethod
-    def from_modelstring(cls, modelstring: str):
+    def from_modelstring(cls, modelstring: str) -> Graph:
         """Instantiate a Graph object from a modelstring"""
         dag = cls()
         dag.add_vertices(_nodes_from_modelstring(modelstring))
@@ -51,7 +51,7 @@ class Graph(igraph.Graph):
         return dag
 
     @classmethod
-    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]):
+    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> Graph:
         """Instantiate a Graph object from an adjacency matrix"""
         if isinstance(amat, np.ndarray):
             amat = amat.tolist()
@@ -112,7 +112,7 @@ class Graph(igraph.Graph):
         super().add_edge(source, target)
         assert self.is_dag()
 
-    def add_edges(self, edges: List[Tuple[str, str]]):
+    def add_edges(self, edges: List[Tuple[str, str]]) -> None:
         """Add multiple edges from a list of tuples, each containing (from, to) as strings"""
         for source, target in edges:
             if (source, target) in self.edges:
@@ -142,7 +142,7 @@ class Graph(igraph.Graph):
         else:
             return self.vs[sorted(ancestors)]
 
-    def are_neighbours(self, a: igraph.Vertex, b: igraph.Vertex):
+    def are_neighbours(self, a: igraph.Vertex, b: igraph.Vertex) -> bool:
         return a.index in self.neighborhood(vertices=b)
 
     def get_v_structures(self, include_shielded: bool = False) -> Set[Tuple[str, str, str]]:
