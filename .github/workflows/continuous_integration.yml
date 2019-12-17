@@ -49,7 +49,6 @@ jobs:
           -   name: Lint with pylint
               run: |
                   python run_pylint.py
-                  python run_pylint_tests.py
 
   format_with_black:
 
