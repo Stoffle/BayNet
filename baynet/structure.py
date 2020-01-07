@@ -68,6 +68,14 @@ class Graph(igraph.Graph):
         # dag.add_vertices(_nodes_sorted(colnames))
         return dag
 
+    @classmethod
+    def from_other(cls, other_graph: object):
+        """Attempt to create a Graph from an existing graph object (nx.DiGraph etc.)."""
+        graph = cls()
+        graph.add_vertices(_nodes_sorted(other_graph.nodes))
+        graph.add_edges(other_graph.edges)
+        return graph
+
     @property
     def nodes(self) -> Set[str]:
         """Return a set of the names of all nodes in the network."""

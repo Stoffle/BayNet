@@ -1,5 +1,6 @@
 from time import time
 import pytest
+import networkx as nx
 import numpy as np
 from igraph import VertexSeq
 from baynet.structure import Graph, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
@@ -56,6 +57,16 @@ def test_Graph_from_amat():
         ('D', 'A'),
         ('C', 'B'),
     }
+
+
+def test_Graph_from_other():
+    test_graph = nx.DiGraph()
+    test_graph.add_nodes_from(list("ABCD"))
+    edges = [("C", "B"), ("D", "B"), ("D", "C")]
+    test_graph.add_edges_from(edges)
+    graph = Graph.from_other(test_graph)
+    assert graph.edges == set(edges)
+    assert graph.nodes == set(list("ABCD"))
 
 
 def test_Graph_edge_properties():
