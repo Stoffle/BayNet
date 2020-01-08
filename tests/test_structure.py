@@ -1,4 +1,5 @@
 from time import time
+import pickle
 import pytest
 import networkx as nx
 import numpy as np
@@ -28,7 +29,7 @@ def test_Graph_undirected():
 def test_Graph_from_modelstring():
     dag = test_dag()
     assert dag.nodes == {"A", "B", "C", "D"}
-    assert dag.edges == {("C", "B"), ("D", "B"), ("D", "C")}
+    assert dag.edges == dag.directed_edges == {("C", "B"), ("D", "B"), ("D", "C")}
 
 
 def test_Graph_from_amat():
@@ -49,7 +50,7 @@ def test_Graph_from_amat():
 
     assert fully_connected_graph.nodes == unconnected_graph.nodes == {"A", "B", "C", "D"}
     assert unconnected_graph.edges == set()
-    assert fully_connected_graph.edges == {
+    assert fully_connected_graph.edges == fully_connected_graph.directed_edges == {
         ('C', 'A'),
         ('B', 'A'),
         ('D', 'B'),
@@ -65,7 +66,7 @@ def test_Graph_from_other():
     edges = [("C", "B"), ("D", "B"), ("D", "C")]
     test_graph.add_edges_from(edges)
     graph = Graph.from_other(test_graph)
-    assert graph.edges == set(edges)
+    assert graph.edges == graph.directed_edges == set(edges)
     assert graph.nodes == set(list("ABCD"))
 
 
@@ -143,3 +144,17 @@ def test_Graph_get_v_structures():
     assert dag.get_v_structures() == set()
     assert dag.get_v_structures(True) == {("C", "B", "D")}
     assert reversed_dag.get_v_structures(True) == {("B", "D", "C")}
+
+
+def test_Graph_pickling():
+    dag = test_dag()
+    state = dag.__dict__
+    dag_from_state = Graph()
+    dag_from_state.__setstate__(state)
+    p = pickle.dumps(dag)
+    unpickled_dag = pickle.loads(p)
+
+    assert dag.nodes == dag_from_state.nodes
+    assert dag.edges == dag_from_state.edges == dag_from_state.directed_edges
+    assert dag.nodes == unpickled_dag.nodes
+    assert dag.edges == unpickled_dag.edges == unpickled_dag.directed_edges

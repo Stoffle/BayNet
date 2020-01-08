@@ -42,7 +42,16 @@ class Graph(igraph.Graph):
         elif not kwargs['directed']:
             raise ValueError("Graph() can only be used with directed=True")
         kwargs['vertex_attrs'] = {'CPD': None, 'levels': None}
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
+        self.TEST_ATTRIBUTE = True
+
+    @property
+    def __dict__(self):
+        return {'nodes': list(self.nodes), 'edges': list(self.edges)}
+
+    def __setstate__(self, state):
+        self.add_vertices(_nodes_sorted(state['nodes']))
+        self.add_edges(state['edges'])
 
     @classmethod
     def from_modelstring(cls, modelstring: str) -> Graph:
