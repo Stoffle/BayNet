@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="BayNet",
-    version="0.0.1-dev",
+    version="0.0.2-dev",
     author="Chris Robinson",
     author_email="c.f.robinson@sussex.ac.uk",
     description="(another) Python Bayesian Network library",
@@ -26,6 +26,6 @@ setup(
             "pydocstyle",
             "networkx",
         ],
-        "ci": ["pytest >= 3.3.2", "pytest-cov >= 2.6.0"],
+        "ci": ["pytest >= 3.3.2", "pytest-cov >= 2.6.0", "networkx"],
     },
 )

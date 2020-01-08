@@ -50,14 +50,11 @@ def test_Graph_from_amat():
 
     assert fully_connected_graph.nodes == unconnected_graph.nodes == {"A", "B", "C", "D"}
     assert unconnected_graph.edges == set()
-    assert fully_connected_graph.edges == fully_connected_graph.directed_edges == {
-        ('C', 'A'),
-        ('B', 'A'),
-        ('D', 'B'),
-        ('D', 'C'),
-        ('D', 'A'),
-        ('C', 'B'),
-    }
+    assert (
+        fully_connected_graph.edges
+        == fully_connected_graph.directed_edges
+        == {('C', 'A'), ('B', 'A'), ('D', 'B'), ('D', 'C'), ('D', 'A'), ('C', 'B'),}
+    )
 
 
 def test_Graph_from_other():
