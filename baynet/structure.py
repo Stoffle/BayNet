@@ -47,9 +47,11 @@ class Graph(igraph.Graph):
 
     @property
     def __dict__(self):
+        """Return dict of attributes needed for pickling."""
         return {'nodes': list(self.nodes), 'edges': list(self.edges)}
 
     def __setstate__(self, state):
+        """Set new instance's state from a dict, used by pickle."""
         self.add_vertices(_nodes_sorted(state['nodes']))
         self.add_edges(state['edges'])
 
