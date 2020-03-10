@@ -1,7 +1,7 @@
 """Graph object."""
 from __future__ import annotations
 from itertools import combinations
-from typing import List, Union, Tuple, Set
+from typing import List, Union, Tuple, Set, Any, Dict
 import igraph
 import numpy as np
 
@@ -35,7 +35,7 @@ class Graph(igraph.Graph):
     """Graph object, built around igraph.Graph, adapted for bayesian networks."""
 
     # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Create a graph object."""
         if 'directed' not in kwargs:
             kwargs['directed'] = True
@@ -43,14 +43,13 @@ class Graph(igraph.Graph):
             raise ValueError("Graph() can only be used with directed=True")
         kwargs['vertex_attrs'] = {'CPD': None, 'levels': None}
         super().__init__(**kwargs)
-        self.TEST_ATTRIBUTE = True
 
     @property
-    def __dict__(self):
+    def __dict__(self) -> Dict:
         """Return dict of attributes needed for pickling."""
         return {'nodes': list(self.nodes), 'edges': list(self.edges)}
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[str, Any]) -> None:
         """Set new instance's state from a dict, used by pickle."""
         self.add_vertices(_nodes_sorted(state['nodes']))
         self.add_edges(state['edges'])
@@ -76,11 +75,10 @@ class Graph(igraph.Graph):
             )
         dag = cls.Adjacency(amat)
         dag.vs['name'] = colnames
-        # dag.add_vertices(_nodes_sorted(colnames))
         return dag
 
     @classmethod
-    def from_other(cls, other_graph: object):
+    def from_other(cls, other_graph: Any) -> Graph:
         """Attempt to create a Graph from an existing graph object (nx.DiGraph etc.)."""
         graph = cls()
         graph.add_vertices(_nodes_sorted(other_graph.nodes))
@@ -150,6 +148,7 @@ class Graph(igraph.Graph):
         return np.array(list(self.get_adjacency()), dtype=bool)
 
     def get_modelstring(self) -> str:
+        """Obtain modelstring representation of stored graph."""
         modelstring = ""
         for node in _nodes_sorted(list(self.nodes)):
             parents = _nodes_sorted(
@@ -193,16 +192,3 @@ class Graph(igraph.Graph):
                 ]
             v_structures += node_v_structures
         return set(v_structures)
-        # from functools import partial
-        # self.v_structures = []
-        # self.motifs_randesu(callback=partial(motif_callback, include_shielded))
-        # return self.v_structures
-
-
-# def motif_callback(
-#   include_shielded: bool,
-#   graph: Graph, vertices: List[int],
-#   isomorphy_class: int
-#   ):
-#     if (include_shielded and isomorphy_class == 7) or (isomorphy_class == 2):
-#         graph.v_structures.append(tuple(graph.get_node_name(v_idx) for v_idx in vertices))
