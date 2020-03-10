@@ -149,6 +149,17 @@ class Graph(igraph.Graph):
             return self.as_undirected().get_numpy_adjacency()
         return np.array(list(self.get_adjacency()), dtype=bool)
 
+    def get_modelstring(self) -> str:
+        modelstring = ""
+        for node in _nodes_sorted(list(self.nodes)):
+            parents = _nodes_sorted(
+                [v['name'] for v in self.get_ancestors(node, only_parents=True)]
+            )
+            modelstring += f"[{node}"
+            modelstring += f"|{':'.join(parents)}" if parents else ""
+            modelstring += "]"
+        return modelstring
+
     def get_ancestors(self, node: Union[str, int], only_parents: bool = False) -> igraph.VertexSeq:
         """Return an igraph.VertexSeq of ancestors for given node (string or node index)."""
         if isinstance(node, str):

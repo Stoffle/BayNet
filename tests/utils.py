@@ -2,7 +2,7 @@ import numpy as np
 from baynet.structure import Graph
 
 TEST_MODELSTRING = "[A][B|C:D][C|D][D]"
-REVERSED_MODELSTRING = "[A][C|B][D|B:C][B]"
+REVERSED_MODELSTRING = "[A][B][C|B][D|B:C]"
 
 
 def test_dag(reversed: bool = False) -> Graph:

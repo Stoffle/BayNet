@@ -5,7 +5,7 @@ import networkx as nx
 import numpy as np
 from igraph import VertexSeq
 from baynet.structure import Graph, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
-from .utils import TEST_MODELSTRING, test_dag, partial_dag
+from .utils import TEST_MODELSTRING, REVERSED_MODELSTRING, test_dag, partial_dag
 
 
 def test_nodes_sorted():
@@ -106,6 +106,9 @@ def test_Graph_get_numpy_adjacency():
     assert np.all(dag.get_numpy_adjacency() == amat)
     assert np.all(dag.get_numpy_adjacency(skeleton=True) == amat | amat.T)
 
+def test_Graph_get_modelstring():
+    assert test_dag().get_modelstring() == TEST_MODELSTRING
+    assert test_dag(reversed=True).get_modelstring() == REVERSED_MODELSTRING
 
 def test_Graph_get_ancestors():
     dag = test_dag()
