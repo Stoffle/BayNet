@@ -22,7 +22,8 @@ def test_edges_from_modelstring():
 
 
 def test_Graph_undirected():
-    with pytest.raises(ValueError):
+    # Graph.__init__() no longer accepts keywords, check that remains the case
+    with pytest.raises(TypeError):
         Graph(directed=False)
 
 

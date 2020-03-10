@@ -50,7 +50,7 @@ class ConditionalProbabilityTable:
     def sample(self, parent_values: np.ndarray) -> np.ndarray:
         """Sample based on parent values."""
         if not self._scaled:
-            raise ValueError("CPT use .rescale_probabilities() before sampling")
+            raise ValueError("CPT not scaled; use .rescale_probabilities() before sampling")
         if not parent_values.shape[1] == self._n_parents:
             raise ValueError("Parent values shape don't match number of parents")
         random_vector = np.random.uniform(size=parent_values.shape[0])
@@ -67,3 +67,26 @@ def _sample_cpt(
         probs = cpt[parent_values[row_idx]]
         out_vector[row_idx] = np.argmax(random_vector[row_idx] < probs)
     return out_vector
+
+
+class ConditionalProbabilityDistribution:
+    """Conditional probability distribution for continuous data."""
+    def __init__(self, node: igraph.Vertex, noise_scale: float = 1.0) -> None:
+        """Initialise a conditional probability table."""
+        self.noise_scale = noise_scale
+        # sorted_parents = sorted(node.neighbors(mode="in"), key = lambda x: x['name'])
+        # print(sorted_parents)
+        parents = list(node.neighbors(mode="in"))
+        self._n_parents = len(parents)
+        self._array = np.zeros(self._n_parents, dtype=float)
+
+    def sample_parameters(self, weights: List[float] = [-2.0, -0.5, 0.5, 2.0]):
+        self._array = np.random.choice(weights, self._n_parents)
+
+    def sample(self, parent_values: np.ndarray) -> np.ndarray:
+        """Sample based on parent values."""
+        if not parent_values.shape[1] == self._n_parents:
+            raise ValueError("Parent values shape don't match number of parents")
+        noise = np.random.normal(0, self.noise_scale)
+        return parent_values.dot(self._array) + noise
+

@@ -35,15 +35,10 @@ class Graph(igraph.Graph):
     """Graph object, built around igraph.Graph, adapted for bayesian networks."""
 
     # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: None) -> None:
         """Create a graph object."""
-        if 'directed' not in kwargs:
-            kwargs['directed'] = True
-        elif not kwargs['directed']:
-            raise ValueError("Graph() can only be used with directed=True")
-        kwargs['vertex_attrs'] = {'CPD': None, 'levels': None}
-        super().__init__(**kwargs)
-        self.TEST_ATTRIBUTE = True
+        # Grab *args because restoring from pickle passes arguments here
+        super().__init__(directed=True, vertex_attrs={'CPD': None, 'levels': None})
 
     @property
     def __dict__(self):
