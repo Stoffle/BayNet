@@ -177,16 +177,3 @@ class Graph(igraph.Graph):
                 ]
             v_structures += node_v_structures
         return set(v_structures)
-        # from functools import partial
-        # self.v_structures = []
-        # self.motifs_randesu(callback=partial(motif_callback, include_shielded))
-        # return self.v_structures
-
-
-# def motif_callback(
-#   include_shielded: bool,
-#   graph: Graph, vertices: List[int],
-#   isomorphy_class: int
-#   ):
-#     if (include_shielded and isomorphy_class == 7) or (isomorphy_class == 2):
-#         graph.v_structures.append(tuple(graph.get_node_name(v_idx) for v_idx in vertices))
