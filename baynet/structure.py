@@ -1,7 +1,7 @@
 """Graph object."""
 from __future__ import annotations
 from itertools import combinations
-from typing import List, Union, Tuple, Set
+from typing import List, Union, Tuple, Set, Any, Dict
 import igraph
 import numpy as np
 
@@ -41,11 +41,11 @@ class Graph(igraph.Graph):
         super().__init__(directed=True, vertex_attrs={'CPD': None, 'levels': None})
 
     @property
-    def __dict__(self):
+    def __dict__(self) -> Dict:
         """Return dict of attributes needed for pickling."""
         return {'nodes': list(self.nodes), 'edges': list(self.edges)}
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[str, Any]) -> None:
         """Set new instance's state from a dict, used by pickle."""
         self.add_vertices(_nodes_sorted(state['nodes']))
         self.add_edges(state['edges'])
@@ -71,11 +71,10 @@ class Graph(igraph.Graph):
             )
         dag = cls.Adjacency(amat)
         dag.vs['name'] = colnames
-        # dag.add_vertices(_nodes_sorted(colnames))
         return dag
 
     @classmethod
-    def from_other(cls, other_graph: object):
+    def from_other(cls, other_graph: Any) -> Graph:
         """Attempt to create a Graph from an existing graph object (nx.DiGraph etc.)."""
         graph = cls()
         graph.add_vertices(_nodes_sorted(other_graph.nodes))
@@ -143,6 +142,18 @@ class Graph(igraph.Graph):
         if skeleton:
             return self.as_undirected().get_numpy_adjacency()
         return np.array(list(self.get_adjacency()), dtype=bool)
+
+    def get_modelstring(self) -> str:
+        """Obtain modelstring representation of stored graph."""
+        modelstring = ""
+        for node in _nodes_sorted(list(self.nodes)):
+            parents = _nodes_sorted(
+                [v['name'] for v in self.get_ancestors(node, only_parents=True)]
+            )
+            modelstring += f"[{node}"
+            modelstring += f"|{':'.join(parents)}" if parents else ""
+            modelstring += "]"
+        return modelstring
 
     def get_ancestors(self, node: Union[str, int], only_parents: bool = False) -> igraph.VertexSeq:
         """Return an igraph.VertexSeq of ancestors for given node (string or node index)."""

@@ -3,7 +3,11 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 from baynet.structure import Graph
-from baynet.parameters import ConditionalProbabilityTable, _sample_cpt, ConditionalProbabilityDistribution
+from baynet.parameters import (
+    ConditionalProbabilityTable,
+    _sample_cpt,
+    ConditionalProbabilityDistribution,
+)
 from .utils import test_dag
 
 
@@ -99,11 +103,24 @@ def test_cpd_init():
     assert cpd._array.shape == (2,)
     assert np.allclose(cpd._array, 0)
 
+
 def test_cpd_sample_params():
     dag = test_dag()
     cpd = ConditionalProbabilityDistribution(dag.vs[1])
     cpd.sample_parameters(weights=[1])
     assert np.allclose(cpd._array, 1)
+
+
+def test_cpd_sample():
+    dag = test_dag()
+    cpd = ConditionalProbabilityDistribution(dag.vs[1], noise_scale=0)
+    cpd.sample_parameters(weights=[1])
+    assert np.allclose(cpd.sample(np.ones((10, 2))), 2)
+    with pytest.raises(ValueError):
+        cpd.sample(np.ones(10))
+    with pytest.raises(ValueError):
+        cpd.sample(np.ones((10,1)))
+
 
 if __name__ == "__main__":
     time_sample_cpt()
