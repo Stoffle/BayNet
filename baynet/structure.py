@@ -1,9 +1,14 @@
 """Graph object."""
 from __future__ import annotations
 from itertools import combinations
-from typing import List, Union, Tuple, Set, Any, Dict
+from typing import List, Union, Tuple, Set, Any, Dict, Optional
+from string import Template
+from pathlib import Path
+
 import igraph
 import numpy as np
+
+from .parameters import ConditionalProbabilityDistribution
 
 
 def _nodes_sorted(nodes: Union[List[int], List[str], List[object]]) -> List[str]:
@@ -31,18 +36,18 @@ def _edges_from_modelstring(modelstring: str) -> List[Tuple[str, str]]:
     return edges
 
 
-class Graph(igraph.Graph):
-    """Graph object, built around igraph.Graph, adapted for bayesian networks."""
+class DAG(igraph.Graph):
+    """Directed Acyclic Graph object, built around igraph.Graph, adapted for bayesian networks."""
 
     # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: None, **kwargs: Any) -> None:
         """Create a graph object."""
-        if 'directed' not in kwargs:
-            kwargs['directed'] = True
-        elif not kwargs['directed']:
-            raise ValueError("Graph() can only be used with directed=True")
-        kwargs['vertex_attrs'] = {'CPD': None, 'levels': None}
-        super().__init__(**kwargs)
+        # Grab *args and **kwargs because pickle/igraph do weird things here
+        super().__init__(directed=True, vertex_attrs={'CPD': None, 'levels': None})
+        if 'name' in kwargs.keys():
+            self.name = kwargs['name']
+        else:
+            self.name = "unnamed"
 
     @property
     def __dict__(self) -> Dict:
@@ -55,7 +60,7 @@ class Graph(igraph.Graph):
         self.add_edges(state['edges'])
 
     @classmethod
-    def from_modelstring(cls, modelstring: str) -> Graph:
+    def from_modelstring(cls, modelstring: str) -> DAG:
         """Instantiate a Graph object from a modelstring."""
         dag = cls()
         dag.add_vertices(_nodes_from_modelstring(modelstring))
@@ -63,7 +68,7 @@ class Graph(igraph.Graph):
         return dag
 
     @classmethod
-    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> Graph:
+    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> DAG:
         """Instantiate a Graph object from an adjacency matrix."""
         if isinstance(amat, np.ndarray):
             amat = amat.tolist()
@@ -78,7 +83,7 @@ class Graph(igraph.Graph):
         return dag
 
     @classmethod
-    def from_other(cls, other_graph: Any) -> Graph:
+    def from_other(cls, other_graph: Any) -> DAG:
         """Attempt to create a Graph from an existing graph object (nx.DiGraph etc.)."""
         graph = cls()
         graph.add_vertices(_nodes_sorted(other_graph.nodes))
@@ -144,7 +149,8 @@ class Graph(igraph.Graph):
     def get_numpy_adjacency(self, skeleton: bool = False) -> np.ndarray:
         """Obtain adjacency matrix as a numpy (boolean) array."""
         if skeleton:
-            return self.as_undirected().get_numpy_adjacency()
+            amat = self.get_numpy_adjacency()
+            return amat | amat.T
         return np.array(list(self.get_adjacency()), dtype=bool)
 
     def get_modelstring(self) -> str:
@@ -159,11 +165,15 @@ class Graph(igraph.Graph):
             modelstring += "]"
         return modelstring
 
-    def get_ancestors(self, node: Union[str, int], only_parents: bool = False) -> igraph.VertexSeq:
+    def get_ancestors(
+        self, node: Union[str, int, igraph.Vertex], only_parents: bool = False
+    ) -> igraph.VertexSeq:
         """Return an igraph.VertexSeq of ancestors for given node (string or node index)."""
         if isinstance(node, str):
             # Convert name to index
             node = self.get_node_index(node)
+        elif isinstance(node, igraph.Vertex):
+            node = node.index
         order = 1 if only_parents else len(self.vs)
         ancestors = list(self.neighborhood(vertices=node, order=order, mode="IN"))
         ancestors.remove(node)
@@ -192,3 +202,65 @@ class Graph(igraph.Graph):
                 ]
             v_structures += node_v_structures
         return set(v_structures)
+
+    def generate_parameters(
+        self,
+        data_type: str,
+        possible_weights: Optional[Union[List[float], Tuple[float]]] = None,
+        noise_scale: float = 1.0,
+        seed: Optional[int] = None,
+    ) -> None:
+        """Populate parameters for each node."""
+        if seed is not None:
+            np.random.seed(seed)
+        if data_type in ['cont', 'continuous']:
+            for vertex in self.vs:
+                vertex['CPD'] = ConditionalProbabilityDistribution(vertex, noise_scale)
+                if possible_weights is not None:
+                    vertex['CPD'].sample_parameters(weights=possible_weights)
+                else:
+                    vertex['CPD'].sample_parameters()
+        else:
+            raise NotImplementedError("Graph.generate_parameters() only supports 'continuous'")
+
+    def sample(self, n_samples: int, seed: Optional[int] = None) -> np.ndarray:
+        """Sample n_samples rows of data from the graph."""
+        if seed is not None:
+            np.random.seed(seed)
+        sorted_nodes = self.topological_sorting(mode="out")
+        data = np.zeros((n_samples, len(self.nodes)))
+        for node_idx in sorted_nodes:
+            data[:, node_idx] = self.vs[node_idx]['CPD'].sample(data)
+        return data
+
+    def to_bif(self, filepath: Optional[Path] = None) -> str:
+        """Represent DAG as a BIF file, optionally saving to file."""
+        network_template = Template("network $name {\n}\n")
+        continuous_variable_template = Template(
+            """variable $name {\n  type continuous;\n  $properties}\n"""
+        )
+        continuous_probability_template = Template(
+            """probability ( $node | $parents ) {\n  table $values ;\n  }\n"""
+        )
+        bif_string = network_template.safe_substitute(name=self.name)
+
+        for vertex in self.vs:
+            bif_string += continuous_variable_template.safe_substitute(
+                name=vertex['name'], properties=""
+            )
+
+        for vertex in self.vs:
+            if vertex['CPD'] is not None and vertex['CPD'].array.size > 0:
+                bif_string += continuous_probability_template.safe_substitute(
+                    node=vertex['name'],
+                    parents=', '.join(vertex['CPD'].parent_names),
+                    values=', '.join(list(vertex['CPD'].array.astype(str))),
+                )
+        if filepath is not None:
+            if filepath.is_dir():
+                filepath = filepath / 'graph.bif'
+            filepath.resolve()
+            assert filepath.suffix == '.bif'
+            filepath.write_text(bif_string)
+
+        return bif_string

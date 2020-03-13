@@ -14,7 +14,7 @@ setup(
     url="https://github.com/Stoffle/BayNet",
     packages=find_packages(exclude=("tests",)),
     python_requires=">=3.7",
-    install_requires=["python-igraph >= 0.7.0", "numpy >= 1.17.2", "pandas >= 0.25",],
+    install_requires=["python-igraph < 0.8.0", "numpy >= 1.17.2", "pandas >= 0.25",],
     extras_require={
         "dev": [
             "black",
