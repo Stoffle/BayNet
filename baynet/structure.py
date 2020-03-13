@@ -3,6 +3,7 @@ from __future__ import annotations
 from itertools import combinations
 from typing import List, Union, Tuple, Set, Any, Dict, Optional
 from string import Template
+from pathlib import Path
 
 import igraph
 import numpy as np
@@ -203,8 +204,11 @@ class Graph(igraph.Graph):
         data_type: str,
         possible_weights: Optional[Union[List[float], Tuple[float]]] = None,
         noise_scale: float = 1.0,
+        seed: Optional[int] = None
     ) -> None:
         """Populate parameters for each node."""
+        if seed is not None:
+            np.random.seed(seed)
         if data_type in ['cont', 'continuous']:
             for vertex in self.vs:
                 vertex['CPD'] = ConditionalProbabilityDistribution(vertex, noise_scale)
@@ -215,15 +219,17 @@ class Graph(igraph.Graph):
         else:
             raise NotImplementedError("Graph.generate_parameters() only supports 'continuous'")
 
-    def sample(self, n_samples: int) -> np.ndarray:
+    def sample(self, n_samples: int, seed: Optional[int] = None) -> np.ndarray:
         """Sample n_samples rows of data from the graph."""
+        if seed is not None:
+            np.random.seed(seed)
         sorted_nodes = self.topological_sorting(mode="out")
         data = np.zeros((n_samples, len(self.nodes)))
         for node_idx in sorted_nodes:
             data[:, node_idx] = self.vs[node_idx]['CPD'].sample(data)
         return data
 
-    def to_bif(self):
+    def to_bif(self, filepath: Optional[Path] = None) -> Optional[str]:
         network_template = Template("network $name {\n}\n")
         continuous_variable_template = Template(
             """variable $name {\n  type continuous;\n  $properties}\n"""
@@ -246,4 +252,11 @@ class Graph(igraph.Graph):
                     parents=', '.join(v['CPD'].parent_names),
                     values=', '.join(list(v['CPD']._array.astype(str))),
                 )
-        return bif_string
+        if filepath is None:
+            return bif_string
+        
+        if filepath.is_dir():
+            filepath = filepath / 'graph.bif'
+        filepath.resolve()
+        assert filepath.suffix == '.bif'
+        filepath.write_text(bif_string)

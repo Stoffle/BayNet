@@ -1,9 +1,12 @@
 from time import time
 import pickle
+from pathlib import Path
+
 import pytest
 import networkx as nx
 import numpy as np
 from igraph import VertexSeq
+
 from baynet.structure import Graph, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
 from .utils import TEST_MODELSTRING, REVERSED_MODELSTRING, test_dag, partial_dag
 
@@ -251,8 +254,14 @@ probability ( C | D ) {
 """
     )
 
-    dag = test_dag()
+    test_path = Path(__file__).parent.resolve() / 'test_graph.bif'
+    dag.to_bif(filepath = test_path)
+    import time
+    assert test_path.read_text() == dag.to_bif()
+    test_path.unlink()
+
     with pytest.raises(NotImplementedError):
+        dag = test_dag()
         dag.generate_parameters(data_type='discrete')
         assert (
             dag.to_bif()
