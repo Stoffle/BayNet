@@ -15,6 +15,7 @@ class ConditionalProbabilityTable:
         parent_levels = [v['levels'] for v in node.neighbors(mode="in")]
         self._n_parents = len(parent_levels)
         self.parents = np.array([parent.index for parent in node.neighbors(mode="in")], dtype=int)
+        self.parent_names = [parent['name'] for parent in node.neighbors(mode="in")]
         if any([pl is None for pl in parent_levels]):
             raise ValueError(f"Parent of {node['name']} missing attribute 'levels'")
 
@@ -80,6 +81,7 @@ class ConditionalProbabilityDistribution:
         """Initialise a conditional probability table."""
         self.noise_scale = noise_scale
         self.parents = np.array([parent.index for parent in node.neighbors(mode="in")], dtype=int)
+        self.parent_names = [parent['name'] for parent in node.neighbors(mode="in")]
         self._n_parents = len(self.parents)
         self._array = np.zeros(self._n_parents, dtype=float)
 

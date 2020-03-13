@@ -115,10 +115,30 @@ def test_Graph_get_modelstring():
 
 def test_Graph_get_ancestors():
     dag = test_dag()
-    assert dag.get_ancestors("A")['name'] == dag.get_ancestors(0)['name'] == []
-    assert dag.get_ancestors("B")['name'] == dag.get_ancestors(1)['name'] == ['C', 'D']
-    assert dag.get_ancestors("C")['name'] == dag.get_ancestors(2)['name'] == ['D']
-    assert dag.get_ancestors("D")['name'] == dag.get_ancestors(3)['name'] == []
+    assert (
+        dag.get_ancestors("A")['name']
+        == dag.get_ancestors(dag.vs[0])['name']
+        == dag.get_ancestors(0)['name']
+        == []
+    )
+    assert (
+        dag.get_ancestors("B")['name']
+        == dag.get_ancestors(dag.vs[1])['name']
+        == dag.get_ancestors(1)['name']
+        == ['C', 'D']
+    )
+    assert (
+        dag.get_ancestors("C")['name']
+        == dag.get_ancestors(dag.vs[2])['name']
+        == dag.get_ancestors(2)['name']
+        == ['D']
+    )
+    assert (
+        dag.get_ancestors("D")['name']
+        == dag.get_ancestors(dag.vs[3])['name']
+        == dag.get_ancestors(3)['name']
+        == []
+    )
 
 
 def test_Graph_get_node_name_or_index():
@@ -180,3 +200,63 @@ def test_Graph_sample():
 
     dag.generate_parameters(data_type='cont', noise_scale=1.0)
     assert not np.allclose(dag.sample(10), 0)
+
+
+def test_Graph_to_bif():
+    dag = test_dag()
+    assert (
+        dag.to_bif()
+        == """network unknown {
+}
+variable A {
+  type continuous;
+  }
+variable B {
+  type continuous;
+  }
+variable C {
+  type continuous;
+  }
+variable D {
+  type continuous;
+  }
+"""
+    )
+
+    dag = test_dag()
+    dag.generate_parameters(data_type='cont', possible_weights=[2], noise_scale=0.0)
+    dag.name = 'test_dag'
+    assert (
+        dag.to_bif()
+        == """network test_dag {
+}
+variable A {
+  type continuous;
+  }
+variable B {
+  type continuous;
+  }
+variable C {
+  type continuous;
+  }
+variable D {
+  type continuous;
+  }
+probability ( B | C, D ) {
+  table 2, 2 ;
+  }
+probability ( C | D ) {
+  table 2 ;
+  }
+"""
+    )
+
+    dag = test_dag()
+    with pytest.raises(NotImplementedError):
+        dag.generate_parameters(data_type='discrete')
+        assert (
+            dag.to_bif()
+            == """
+    
+        """
+        )

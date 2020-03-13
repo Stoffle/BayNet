@@ -2,6 +2,8 @@
 from __future__ import annotations
 from itertools import combinations
 from typing import List, Union, Tuple, Set, Any, Dict, Optional
+from string import Template
+
 import igraph
 import numpy as np
 
@@ -37,10 +39,11 @@ class Graph(igraph.Graph):
     """Graph object, built around igraph.Graph, adapted for bayesian networks."""
 
     # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
-    def __init__(self, *args: None) -> None:
+    def __init__(self, *args: None, name: str = "unknown") -> None:
         """Create a graph object."""
         # Grab *args because restoring from pickle passes arguments here
         super().__init__(directed=True, vertex_attrs={'CPD': None, 'levels': None})
+        self.name = name
 
     @property
     def __dict__(self) -> Dict:
@@ -157,11 +160,15 @@ class Graph(igraph.Graph):
             modelstring += "]"
         return modelstring
 
-    def get_ancestors(self, node: Union[str, int], only_parents: bool = False) -> igraph.VertexSeq:
+    def get_ancestors(
+        self, node: Union[str, int, igraph.Vertex], only_parents: bool = False
+    ) -> igraph.VertexSeq:
         """Return an igraph.VertexSeq of ancestors for given node (string or node index)."""
         if isinstance(node, str):
             # Convert name to index
             node = self.get_node_index(node)
+        elif isinstance(node, igraph.Vertex):
+            node = node.index
         order = 1 if only_parents else len(self.vs)
         ancestors = list(self.neighborhood(vertices=node, order=order, mode="IN"))
         ancestors.remove(node)
@@ -215,3 +222,28 @@ class Graph(igraph.Graph):
         for node_idx in sorted_nodes:
             data[:, node_idx] = self.vs[node_idx]['CPD'].sample(data)
         return data
+
+    def to_bif(self):
+        network_template = Template("network $name {\n}\n")
+        continuous_variable_template = Template(
+            """variable $name {\n  type continuous;\n  $properties}\n"""
+        )
+        property_template = Template("  property $prop ;\n")
+        continuous_probability_template = Template(
+            """probability ( $node | $parents ) {\n  table $values ;\n  }\n"""
+        )
+        bif_string = network_template.safe_substitute(name=self.name)
+
+        for v in self.vs:
+            bif_string += continuous_variable_template.safe_substitute(
+                name=v['name'], properties=""
+            )
+
+        for v in self.vs:
+            if v['CPD'] is not None and v['CPD']._array.size > 0:
+                bif_string += continuous_probability_template.safe_substitute(
+                    node=v['name'],
+                    parents=', '.join(v['CPD'].parent_names),
+                    values=', '.join(list(v['CPD']._array.astype(str))),
+                )
+        return bif_string
