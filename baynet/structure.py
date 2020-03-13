@@ -40,11 +40,14 @@ class DAG(igraph.Graph):
     """Directed Acyclic Graph object, built around igraph.Graph, adapted for bayesian networks."""
 
     # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
-    def __init__(self, *args: None, name: str = "unknown") -> None:
+    def __init__(self, *args: None, **kwargs: Any) -> None:
         """Create a graph object."""
-        # Grab *args because restoring from pickle passes arguments here
+        # Grab *args and **kwargs because pickle/igraph do weird things here
         super().__init__(directed=True, vertex_attrs={'CPD': None, 'levels': None})
-        self.name = name
+        if 'name' in kwargs.keys():
+            self.name = kwargs['name']
+        else:
+            self.name = "unnamed"
 
     @property
     def __dict__(self) -> Dict:
@@ -146,7 +149,8 @@ class DAG(igraph.Graph):
     def get_numpy_adjacency(self, skeleton: bool = False) -> np.ndarray:
         """Obtain adjacency matrix as a numpy (boolean) array."""
         if skeleton:
-            return self.as_undirected().get_numpy_adjacency()
+            amat = self.get_numpy_adjacency()
+            return amat | amat.T
         return np.array(list(self.get_adjacency()), dtype=bool)
 
     def get_modelstring(self) -> str:

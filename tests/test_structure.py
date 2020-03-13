@@ -24,12 +24,6 @@ def test_edges_from_modelstring():
     assert _edges_from_modelstring(TEST_MODELSTRING) == [("C", "B"), ("D", "B"), ("D", "C")]
 
 
-def test_DAG_undirected():
-    # Graph.__init__() no longer accepts keywords, check that remains the case
-    with pytest.raises(TypeError):
-        DAG(directed=False)
-
-
 def test_DAG_from_modelstring():
     dag = test_dag()
     assert dag.nodes == {"A", "B", "C", "D"}
@@ -209,7 +203,7 @@ def test_DAG_to_bif():
     dag = test_dag()
     assert (
         dag.to_bif()
-        == """network unknown {
+        == """network unnamed {
 }
 variable A {
   type continuous;
