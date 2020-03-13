@@ -15,8 +15,8 @@ def test_CPT_init():
     dag = test_dag()
     dag.vs['levels'] = 2
     cpt = ConditionalProbabilityTable(dag.vs[1])
-    assert cpt._array.shape == (2, 2, 2)
-    assert np.allclose(cpt._array, 0)
+    assert cpt.array.shape == (2, 2, 2)
+    assert np.allclose(cpt.array, 0)
 
     dag.add_vertex("E")
     with pytest.raises(ValueError):
@@ -35,8 +35,8 @@ def test_CPT_rescale():
         cpt.rescale_probabilities()
         # Check cumsum is working properly
         for i in range(cpt._levels):
-            assert np.allclose(cpt._array[:, :, i], (i + 1) / cpt._levels)
-    cpt._array = np.random.uniform(size=(3, 3, 3))
+            assert np.allclose(cpt.array[:, :, i], (i + 1) / cpt._levels)
+    cpt.array = np.random.uniform(size=(3, 3, 3))
     cpt.rescale_probabilities()
     for i in range(3):
         for j in range(3):
@@ -68,10 +68,10 @@ def test_sample_cpt():
     dag = test_dag()
     dag.vs['levels'] = 2
     cpt = ConditionalProbabilityTable(dag.vs[1])
-    cpt._array[0, 0, :] = [0.5, 0.5]
-    cpt._array[0, 1, :] = [1.0, 0.0]
-    cpt._array[1, 0, :] = [0.0, 1.0]
-    cpt._array[1, 1, :] = [0.5, 0.5]
+    cpt.array[0, 0, :] = [0.5, 0.5]
+    cpt.array[0, 1, :] = [1.0, 0.0]
+    cpt.array[1, 0, :] = [0.0, 1.0]
+    cpt.array[1, 1, :] = [0.5, 0.5]
     cpt.rescale_probabilities()
     parent_values = np.array([[0, 0], [0, 0], [0, 1], [0, 1], [1, 0], [1, 0], [1, 1], [1, 1]])
     parent_values_tuples = list(map(tuple, parent_values))
@@ -80,7 +80,7 @@ def test_sample_cpt():
 
     expected_output = np.array([0, 1, 0, 0, 1, 1, 0, 1])
 
-    assert np.all(_sample_cpt(cpt._array, parent_values_tuples, random_vector) == expected_output)
+    assert np.all(_sample_cpt(cpt.array, parent_values_tuples, random_vector) == expected_output)
     np.random.seed(0)  # TODO: replace with mocking np.random.normal
     data = np.zeros((8, 4), dtype=int)
     data[:, cpt.parents] = parent_values
@@ -100,7 +100,7 @@ def time_sample_cpt():
     random_vector = np.random.uniform(size=(n))
 
     start = time()
-    _sample_cpt(cpt._array, parent_values, random_vector)
+    _sample_cpt(cpt.array, parent_values, random_vector)
     end = time()
     print(end - start)
 
@@ -108,15 +108,15 @@ def time_sample_cpt():
 def test_cpd_init():
     dag = test_dag()
     cpd = ConditionalProbabilityDistribution(dag.vs[1])
-    assert cpd._array.shape == (2,)
-    assert np.allclose(cpd._array, 0)
+    assert cpd.array.shape == (2,)
+    assert np.allclose(cpd.array, 0)
 
 
 def test_cpd_sample_params():
     dag = test_dag()
     cpd = ConditionalProbabilityDistribution(dag.vs[1])
     cpd.sample_parameters(weights=[1])
-    assert np.allclose(cpd._array, 1)
+    assert np.allclose(cpd.array, 1)
 
 
 def test_cpd_sample():

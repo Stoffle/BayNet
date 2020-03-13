@@ -229,34 +229,34 @@ class DAG(igraph.Graph):
             data[:, node_idx] = self.vs[node_idx]['CPD'].sample(data)
         return data
 
-    def to_bif(self, filepath: Optional[Path] = None) -> Optional[str]:
+    def to_bif(self, filepath: Optional[Path] = None) -> str:
+        """Represent DAG as a BIF file, optionally saving to file."""
         network_template = Template("network $name {\n}\n")
         continuous_variable_template = Template(
             """variable $name {\n  type continuous;\n  $properties}\n"""
         )
-        property_template = Template("  property $prop ;\n")
         continuous_probability_template = Template(
             """probability ( $node | $parents ) {\n  table $values ;\n  }\n"""
         )
         bif_string = network_template.safe_substitute(name=self.name)
 
-        for v in self.vs:
+        for vertex in self.vs:
             bif_string += continuous_variable_template.safe_substitute(
-                name=v['name'], properties=""
+                name=vertex['name'], properties=""
             )
 
-        for v in self.vs:
-            if v['CPD'] is not None and v['CPD']._array.size > 0:
+        for vertex in self.vs:
+            if vertex['CPD'] is not None and vertex['CPD'].array.size > 0:
                 bif_string += continuous_probability_template.safe_substitute(
-                    node=v['name'],
-                    parents=', '.join(v['CPD'].parent_names),
-                    values=', '.join(list(v['CPD']._array.astype(str))),
+                    node=vertex['name'],
+                    parents=', '.join(vertex['CPD'].parent_names),
+                    values=', '.join(list(vertex['CPD'].array.astype(str))),
                 )
-        if filepath is None:
-            return bif_string
+        if filepath is not None:
+            if filepath.is_dir():
+                filepath = filepath / 'graph.bif'
+            filepath.resolve()
+            assert filepath.suffix == '.bif'
+            filepath.write_text(bif_string)
 
-        if filepath.is_dir():
-            filepath = filepath / 'graph.bif'
-        filepath.resolve()
-        assert filepath.suffix == '.bif'
-        filepath.write_text(bif_string)
+        return bif_string

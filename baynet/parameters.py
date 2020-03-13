@@ -23,7 +23,7 @@ class ConditionalProbabilityTable:
         if node_levels is None:
             raise ValueError(f"Node {node['name']} missing attribute 'levels'")
 
-        self._array = np.zeros([*parent_levels, node_levels], dtype=float)
+        self.array = np.zeros([*parent_levels, node_levels], dtype=float)
         self._levels = node_levels
 
     def __getitem__(self, indexer: Union[int, Tuple[int, ...]]) -> np.ndarray:
@@ -32,7 +32,7 @@ class ConditionalProbabilityTable:
 
         Wraps the stored array's __getitem___.
         """
-        return self._array[indexer]
+        return self.array[indexer]
 
     def rescale_probabilities(self) -> None:
         """
@@ -43,10 +43,10 @@ class ConditionalProbabilityTable:
         to make sampling faster.
         """
         # Anywhere with sum(probs) == 0, we set to all 1 prior to scaling
-        self._array[self._array.sum(axis=-1) == 0] = 1
+        self.array[self.array.sum(axis=-1) == 0] = 1
         # Rescale probabilities to sum to 1
-        self._array /= np.expand_dims(self._array.sum(axis=-1), axis=-1)
-        self._array = self._array.cumsum(axis=-1)
+        self.array /= np.expand_dims(self.array.sum(axis=-1), axis=-1)
+        self.array = self.array.cumsum(axis=-1)
         self._scaled = True
 
     def sample(self, incomplete_data: np.ndarray) -> np.ndarray:
@@ -56,7 +56,7 @@ class ConditionalProbabilityTable:
         parent_values = incomplete_data[:, self.parents]
         random_vector = np.random.uniform(size=parent_values.shape[0])
         parent_values: List[Tuple[int, ...]] = list(map(tuple, parent_values))
-        return _sample_cpt(self._array, parent_values, random_vector)
+        return _sample_cpt(self.array, parent_values, random_vector)
 
     def sample_parameters(self) -> None:
         """Sample CPT from dirichlet distribution."""
@@ -83,13 +83,13 @@ class ConditionalProbabilityDistribution:
         self.parents = np.array([parent.index for parent in node.neighbors(mode="in")], dtype=int)
         self.parent_names = [parent['name'] for parent in node.neighbors(mode="in")]
         self._n_parents = len(self.parents)
-        self._array = np.zeros(self._n_parents, dtype=float)
+        self.array = np.zeros(self._n_parents, dtype=float)
 
     def sample_parameters(
         self, weights: Union[List[float], Tuple[float, ...]] = (-2.0, -0.5, 0.5, 2.0)
     ) -> None:
         """Sample parent weights uniformly from defined possible values."""
-        self._array = np.random.choice(weights, self._n_parents)
+        self.array = np.random.choice(weights, self._n_parents)
 
     def sample(self, incomplete_data: np.ndarray) -> np.ndarray:
         """Sample column based on parent columns in incomplete data matrix."""
@@ -97,4 +97,4 @@ class ConditionalProbabilityDistribution:
         if self._n_parents == 0:
             return noise
         parent_values = incomplete_data[:, self.parents]
-        return parent_values.dot(self._array) + noise
+        return parent_values.dot(self.array) + noise

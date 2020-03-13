@@ -25,9 +25,7 @@ def false_positive_edges(
     return learnt_graph.skeleton_edges - true_graph.skeleton_edges
 
 
-def true_positive_edges(
-    true_graph: DAG, learnt_graph: DAG, skeleton: bool
-) -> Set[Tuple[str, str]]:
+def true_positive_edges(true_graph: DAG, learnt_graph: DAG, skeleton: bool) -> Set[Tuple[str, str]]:
     """Get the set of edges in both learnt_graph and true_graph."""
     _check_args(true_graph, learnt_graph, skeleton)
     if not skeleton:
@@ -80,9 +78,7 @@ def shd(true_graph: DAG, learnt_graph: DAG, skeleton: bool) -> int:
     return int(missing + added + backwards)
 
 
-def false_positive_v_structures(
-    true_graph: DAG, learnt_graph: DAG
-) -> Set[Tuple[str, str, str]]:
+def false_positive_v_structures(true_graph: DAG, learnt_graph: DAG) -> Set[Tuple[str, str, str]]:
     """Get the set of v-structures in learnt_graph but not true_graph."""
     _check_args(true_graph, learnt_graph)
     return learnt_graph.get_v_structures() - true_graph.get_v_structures()
@@ -94,9 +90,7 @@ def true_positive_v_structures(true_graph: DAG, learnt_graph: DAG) -> Set[Tuple[
     return learnt_graph.get_v_structures() & true_graph.get_v_structures()
 
 
-def false_negative_v_structures(
-    true_graph: DAG, learnt_graph: DAG
-) -> Set[Tuple[str, str, str]]:
+def false_negative_v_structures(true_graph: DAG, learnt_graph: DAG) -> Set[Tuple[str, str, str]]:
     """Get the set of v-structures in true_graph but not learnt_graph."""
     _check_args(true_graph, learnt_graph)
     return true_graph.get_v_structures() - learnt_graph.get_v_structures()
