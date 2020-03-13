@@ -53,8 +53,15 @@ def test_CPT_sample_exceptions():
     with pytest.raises(ValueError):
         cpt.sample(None)
     cpt.rescale_probabilities()
-    with pytest.raises(ValueError):
-        cpt.sample(np.zeros((10, 10))[[]])
+    cpt.sample(np.zeros((10, 0))[[]])
+
+
+def test_CPT_sample_parameters():
+    dag = test_dag()
+    dag.vs['levels'] = 2
+    cpt = ConditionalProbabilityTable(dag.vs[1])
+    with pytest.raises(NotImplementedError):
+        cpt.sample_parameters()
 
 
 def test_sample_cpt():
@@ -66,7 +73,6 @@ def test_sample_cpt():
     cpt._array[1, 0, :] = [0.0, 1.0]
     cpt._array[1, 1, :] = [0.5, 0.5]
     cpt.rescale_probabilities()
-
     parent_values = np.array([[0, 0], [0, 0], [0, 1], [0, 1], [1, 0], [1, 0], [1, 1], [1, 1]])
     parent_values_tuples = list(map(tuple, parent_values))
 
@@ -76,7 +82,9 @@ def test_sample_cpt():
 
     assert np.all(_sample_cpt(cpt._array, parent_values_tuples, random_vector) == expected_output)
     np.random.seed(0)  # TODO: replace with mocking np.random.normal
-    assert np.all(cpt.sample(parent_values) == [1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0])
+    data = np.zeros((8, 4), dtype=int)
+    data[:, cpt.parents] = parent_values
+    assert np.all(cpt.sample(data) == [1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0])
 
 
 def time_sample_cpt():
@@ -115,12 +123,12 @@ def test_cpd_sample():
     dag = test_dag()
     cpd = ConditionalProbabilityDistribution(dag.vs[1], noise_scale=0)
     cpd.sample_parameters(weights=[1])
-    assert np.allclose(cpd.sample(np.ones((10, 2))), 2)
-    with pytest.raises(ValueError):
-        cpd.sample(np.ones(10))
-    with pytest.raises(ValueError):
-        cpd.sample(np.ones((10,1)))
+    assert np.allclose(cpd.sample(np.ones((10, 4))), 2)
+    with pytest.raises(TypeError):
+        cpd.sample()
+    with pytest.raises(IndexError):
+        cpd.sample(np.ones((10, 1)))
 
-
-if __name__ == "__main__":
-    time_sample_cpt()
+    cpd_no_parents = ConditionalProbabilityDistribution(dag.vs[0], noise_scale=0)
+    cpd_no_parents.sample_parameters(weights=[1])
+    assert np.allclose(cpd_no_parents.sample(np.ones((10, 4))), 0)

@@ -1,9 +1,11 @@
 """Graph object."""
 from __future__ import annotations
 from itertools import combinations
-from typing import List, Union, Tuple, Set, Any, Dict
+from typing import List, Union, Tuple, Set, Any, Dict, Optional
 import igraph
 import numpy as np
+
+from .parameters import ConditionalProbabilityDistribution
 
 
 def _nodes_sorted(nodes: Union[List[int], List[str], List[object]]) -> List[str]:
@@ -188,3 +190,28 @@ class Graph(igraph.Graph):
                 ]
             v_structures += node_v_structures
         return set(v_structures)
+
+    def generate_parameters(
+        self,
+        data_type: str,
+        possible_weights: Optional[Union[List[float], Tuple[float]]] = None,
+        noise_scale: float = 1.0,
+    ) -> None:
+        """Populate parameters for each node."""
+        if data_type in ['cont', 'continuous']:
+            for vertex in self.vs:
+                vertex['CPD'] = ConditionalProbabilityDistribution(vertex, noise_scale)
+                if possible_weights is not None:
+                    vertex['CPD'].sample_parameters(weights=possible_weights)
+                else:
+                    vertex['CPD'].sample_parameters()
+        else:
+            raise NotImplementedError("Graph.generate_parameters() only supports 'continuous'")
+
+    def sample(self, n_samples: int) -> np.ndarray:
+        """Sample n_samples rows of data from the graph."""
+        sorted_nodes = self.topological_sorting(mode="out")
+        data = np.zeros((n_samples, len(self.nodes)))
+        for node_idx in sorted_nodes:
+            data[:, node_idx] = self.vs[node_idx]['CPD'].sample(data)
+        return data

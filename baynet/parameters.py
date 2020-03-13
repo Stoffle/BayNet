@@ -14,6 +14,7 @@ class ConditionalProbabilityTable:
         # print(sorted_parents)
         parent_levels = [v['levels'] for v in node.neighbors(mode="in")]
         self._n_parents = len(parent_levels)
+        self.parents = np.array([parent.index for parent in node.neighbors(mode="in")], dtype=int)
         if any([pl is None for pl in parent_levels]):
             raise ValueError(f"Parent of {node['name']} missing attribute 'levels'")
 
@@ -47,15 +48,18 @@ class ConditionalProbabilityTable:
         self._array = self._array.cumsum(axis=-1)
         self._scaled = True
 
-    def sample(self, parent_values: np.ndarray) -> np.ndarray:
+    def sample(self, incomplete_data: np.ndarray) -> np.ndarray:
         """Sample based on parent values."""
         if not self._scaled:
             raise ValueError("CPT not scaled; use .rescale_probabilities() before sampling")
-        if not parent_values.shape[1] == self._n_parents:
-            raise ValueError("Parent values shape don't match number of parents")
+        parent_values = incomplete_data[:, self.parents]
         random_vector = np.random.uniform(size=parent_values.shape[0])
         parent_values: List[Tuple[int, ...]] = list(map(tuple, parent_values))
         return _sample_cpt(self._array, parent_values, random_vector)
+
+    def sample_parameters(self) -> None:
+        """Sample CPT from dirichlet distribution."""
+        raise NotImplementedError
 
 
 def _sample_cpt(
@@ -75,17 +79,20 @@ class ConditionalProbabilityDistribution:
     def __init__(self, node: igraph.Vertex, noise_scale: float = 1.0) -> None:
         """Initialise a conditional probability table."""
         self.noise_scale = noise_scale
-        parents = list(node.neighbors(mode="in"))
-        self._n_parents = len(parents)
+        self.parents = np.array([parent.index for parent in node.neighbors(mode="in")], dtype=int)
+        self._n_parents = len(self.parents)
         self._array = np.zeros(self._n_parents, dtype=float)
 
-    def sample_parameters(self, weights: Tuple[float] = (-2.0, -0.5, 0.5, 2.0)) -> None:
+    def sample_parameters(
+        self, weights: Union[List[float], Tuple[float, ...]] = (-2.0, -0.5, 0.5, 2.0)
+    ) -> None:
         """Sample parent weights uniformly from defined possible values."""
         self._array = np.random.choice(weights, self._n_parents)
 
-    def sample(self, parent_values: np.ndarray) -> np.ndarray:
-        """Sample based on parent values."""
-        if len(parent_values.shape) < 2 or not parent_values.shape[1] == self._n_parents:
-            raise ValueError("Parent values shape don't match number of parents")
-        noise = np.random.normal(0, self.noise_scale)
+    def sample(self, incomplete_data: np.ndarray) -> np.ndarray:
+        """Sample column based on parent columns in incomplete data matrix."""
+        noise = np.random.normal(loc=0.0, scale=self.noise_scale, size=incomplete_data.shape[0])
+        if self._n_parents == 0:
+            return noise
+        parent_values = incomplete_data[:, self.parents]
         return parent_values.dot(self._array) + noise

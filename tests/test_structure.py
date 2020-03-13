@@ -161,3 +161,22 @@ def test_Graph_pickling():
     assert dag.edges == dag_from_state.edges == dag_from_state.directed_edges
     assert dag.nodes == unpickled_dag.nodes
     assert dag.edges == unpickled_dag.edges == unpickled_dag.directed_edges
+
+
+def test_Graph_generate_parameters():
+    dag = test_dag()
+    dag.generate_parameters(data_type='cont', possible_weights=[1], noise_scale=0.0)
+    for v in dag.vs:
+        assert np.allclose(v['CPD']._array, 1)
+
+    with pytest.raises(NotImplementedError):
+        dag.generate_parameters(data_type='disc')
+
+
+def test_Graph_sample():
+    dag = test_dag()
+    dag.generate_parameters(data_type='cont', noise_scale=0.0)
+    assert np.allclose(dag.sample(10), 0)
+
+    dag.generate_parameters(data_type='cont', noise_scale=1.0)
+    assert not np.allclose(dag.sample(10), 0)
