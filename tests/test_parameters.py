@@ -2,7 +2,7 @@ from time import time
 from unittest.mock import patch
 import numpy as np
 import pytest
-from baynet.structure import Graph
+from baynet.structure import DAG
 from baynet.parameters import (
     ConditionalProbabilityTable,
     _sample_cpt,
@@ -91,7 +91,7 @@ def time_sample_cpt():
     n = 1_000_000
     levels = 3
 
-    dag = Graph.from_modelstring("[A|B:C:D:E:F:G:H:I:J:K][B][C][D][E][F][G][H][I][J][K]")
+    dag = DAG.from_modelstring("[A|B:C:D:E:F:G:H:I:J:K][B][C][D][E][F][G][H][I][J][K]")
     dag.vs['levels'] = levels
     cpt = ConditionalProbabilityTable(dag.vs[0])
     cpt.rescale_probabilities()

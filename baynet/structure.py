@@ -36,8 +36,8 @@ def _edges_from_modelstring(modelstring: str) -> List[Tuple[str, str]]:
     return edges
 
 
-class Graph(igraph.Graph):
-    """Graph object, built around igraph.Graph, adapted for bayesian networks."""
+class DAG(igraph.Graph):
+    """Directed Acyclic Graph object, built around igraph.Graph, adapted for bayesian networks."""
 
     # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
     def __init__(self, *args: None, name: str = "unknown") -> None:
@@ -57,7 +57,7 @@ class Graph(igraph.Graph):
         self.add_edges(state['edges'])
 
     @classmethod
-    def from_modelstring(cls, modelstring: str) -> Graph:
+    def from_modelstring(cls, modelstring: str) -> DAG:
         """Instantiate a Graph object from a modelstring."""
         dag = cls()
         dag.add_vertices(_nodes_from_modelstring(modelstring))
@@ -65,7 +65,7 @@ class Graph(igraph.Graph):
         return dag
 
     @classmethod
-    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> Graph:
+    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> DAG:
         """Instantiate a Graph object from an adjacency matrix."""
         if isinstance(amat, np.ndarray):
             amat = amat.tolist()
@@ -80,7 +80,7 @@ class Graph(igraph.Graph):
         return dag
 
     @classmethod
-    def from_other(cls, other_graph: Any) -> Graph:
+    def from_other(cls, other_graph: Any) -> DAG:
         """Attempt to create a Graph from an existing graph object (nx.DiGraph etc.)."""
         graph = cls()
         graph.add_vertices(_nodes_sorted(other_graph.nodes))
@@ -204,7 +204,7 @@ class Graph(igraph.Graph):
         data_type: str,
         possible_weights: Optional[Union[List[float], Tuple[float]]] = None,
         noise_scale: float = 1.0,
-        seed: Optional[int] = None
+        seed: Optional[int] = None,
     ) -> None:
         """Populate parameters for each node."""
         if seed is not None:
@@ -254,7 +254,7 @@ class Graph(igraph.Graph):
                 )
         if filepath is None:
             return bif_string
-        
+
         if filepath.is_dir():
             filepath = filepath / 'graph.bif'
         filepath.resolve()

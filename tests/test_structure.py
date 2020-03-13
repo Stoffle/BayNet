@@ -7,9 +7,8 @@ import networkx as nx
 import numpy as np
 from igraph import VertexSeq
 
-from baynet.structure import Graph, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
+from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
 from .utils import TEST_MODELSTRING, REVERSED_MODELSTRING, test_dag, partial_dag
-
 
 def test_nodes_sorted():
     nodes = ["a", "B", "aa", 1, 2]
@@ -27,7 +26,7 @@ def test_edges_from_modelstring():
 def test_Graph_undirected():
     # Graph.__init__() no longer accepts keywords, check that remains the case
     with pytest.raises(TypeError):
-        Graph(directed=False)
+        DAG(directed=False)
 
 
 def test_Graph_from_modelstring():
@@ -38,15 +37,15 @@ def test_Graph_from_modelstring():
 
 def test_Graph_from_amat():
     unconnected_amat = np.zeros((4, 4))
-    unconnected_graph = Graph.from_amat(unconnected_amat, list("ABCD"))
-    unconnected_graph_list = Graph.from_amat(unconnected_amat.tolist(), list("ABCD"))
+    unconnected_graph = DAG.from_amat(unconnected_amat, list("ABCD"))
+    unconnected_graph_list = DAG.from_amat(unconnected_amat.tolist(), list("ABCD"))
     fully_connected_amat = np.tril(np.ones((4, 4)), -1)
-    fully_connected_graph = Graph.from_amat(fully_connected_amat, list("ABCD"))
+    fully_connected_graph = DAG.from_amat(fully_connected_amat, list("ABCD"))
 
     with pytest.raises(ValueError):
-        Graph.from_amat(unconnected_amat, ["A", "B", "C"])
+        DAG.from_amat(unconnected_amat, ["A", "B", "C"])
     with pytest.raises(ValueError):
-        Graph.from_amat(unconnected_amat, "ABCD")
+        DAG.from_amat(unconnected_amat, "ABCD")
 
     assert np.all(unconnected_graph.get_numpy_adjacency() == unconnected_amat)
     assert np.all(unconnected_graph_list.get_numpy_adjacency() == unconnected_amat)
@@ -66,7 +65,7 @@ def test_Graph_from_other():
     test_graph.add_nodes_from(list("ABCD"))
     edges = [("C", "B"), ("D", "B"), ("D", "C")]
     test_graph.add_edges_from(edges)
-    graph = Graph.from_other(test_graph)
+    graph = DAG.from_other(test_graph)
     assert graph.edges == graph.directed_edges == set(edges)
     assert graph.nodes == set(list("ABCD"))
 
@@ -175,7 +174,7 @@ def test_Graph_get_v_structures():
 def test_Graph_pickling():
     dag = test_dag()
     state = dag.__dict__
-    dag_from_state = Graph()
+    dag_from_state = DAG()
     dag_from_state.__setstate__(state)
     p = pickle.dumps(dag)
     unpickled_dag = pickle.loads(p)
@@ -255,8 +254,9 @@ probability ( C | D ) {
     )
 
     test_path = Path(__file__).parent.resolve() / 'test_graph.bif'
-    dag.to_bif(filepath = test_path)
+    dag.to_bif(filepath=test_path)
     import time
+
     assert test_path.read_text() == dag.to_bif()
     test_path.unlink()
 
