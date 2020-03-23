@@ -13,7 +13,7 @@ from .utils import test_dag
 
 def test_CPT_init():
     dag = test_dag()
-    dag.vs['levels'] = 2
+    dag.vs['levels'] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
     assert cpt.array.shape == (2, 2, 2)
     assert np.allclose(cpt.array, 0)
@@ -27,28 +27,35 @@ def test_CPT_init():
         ConditionalProbabilityTable(dag.vs[dag.get_node_index("A")])
 
 
+def test_CPT_parent_configurations():
+    dag = test_dag()
+    dag.vs['levels'] = [["0", "1"] for v in dag.vs]
+    cpt = ConditionalProbabilityTable(dag.vs[1])
+    assert cpt.parent_configurations == [("0", "0"), ("0", "1"), ("1", "0"), ("1", "1")]
+
+
 def test_CPT_rescale():
     dag = test_dag()
     for n_levels in [1, 2, 3, 4]:
-        dag.vs['levels'] = n_levels
+        dag.vs['levels'] = [list(map(str, range(n_levels))) for v in dag.vs]
         cpt = ConditionalProbabilityTable(dag.vs[1])
         cpt.rescale_probabilities()
         # Check cumsum is working properly
-        for i in range(cpt._levels):
-            assert np.allclose(cpt.array[:, :, i], (i + 1) / cpt._levels)
+        for i in range(cpt.n_levels):
+            assert np.allclose(cpt.cumsum_array[:, :, i], (i + 1) / cpt.n_levels)
     cpt.array = np.random.uniform(size=(3, 3, 3))
     cpt.rescale_probabilities()
     for i in range(3):
         for j in range(3):
             # Check last value in each CPT 'row' is 1 (double checking cumsum with random init)
-            assert np.isclose(np.sum(cpt[i, j, -1]), 1)
+            assert np.isclose(np.sum(cpt.cumsum_array[i, j, -1]), 1)
             # and each value is larger than the previous
-            assert cpt[i, j, 0] <= cpt[i, j, 1] <= cpt[i, j, 2]
+            assert cpt.cumsum_array[i, j, 0] <= cpt.cumsum_array[i, j, 1] <= cpt.cumsum_array[i, j, 2]
 
 
 def test_CPT_sample_exceptions():
     dag = test_dag()
-    dag.vs['levels'] = 2
+    dag.vs['levels'] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
     with pytest.raises(ValueError):
         cpt.sample(None)
@@ -58,15 +65,16 @@ def test_CPT_sample_exceptions():
 
 def test_CPT_sample_parameters():
     dag = test_dag()
-    dag.vs['levels'] = 2
+    dag.vs['levels'] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
-    with pytest.raises(NotImplementedError):
-        cpt.sample_parameters()
+    cpt_shape = cpt.array.shape
+    cpt.sample_parameters()
+    assert cpt.array.shape == cpt_shape
 
 
 def test_sample_cpt():
     dag = test_dag()
-    dag.vs['levels'] = 2
+    dag.vs['levels'] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
     cpt.array[0, 0, :] = [0.5, 0.5]
     cpt.array[0, 1, :] = [1.0, 0.0]
@@ -80,29 +88,12 @@ def test_sample_cpt():
 
     expected_output = np.array([0, 1, 0, 0, 1, 1, 0, 1])
 
-    assert np.all(_sample_cpt(cpt.array, parent_values_tuples, random_vector) == expected_output)
+    assert np.all(_sample_cpt(cpt.cumsum_array, parent_values_tuples, random_vector) == expected_output)
     np.random.seed(0)  # TODO: replace with mocking np.random.normal
     data = np.zeros((8, 4), dtype=int)
     data[:, cpt.parents] = parent_values
     assert np.all(cpt.sample(data) == [1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0])
 
-
-def time_sample_cpt():
-    n = 1_000_000
-    levels = 3
-
-    dag = DAG.from_modelstring("[A|B:C:D:E:F:G:H:I:J:K][B][C][D][E][F][G][H][I][J][K]")
-    dag.vs['levels'] = levels
-    cpt = ConditionalProbabilityTable(dag.vs[0])
-    cpt.rescale_probabilities()
-    parent_values = np.random.randint(0, levels, size=(n, 2))
-    parent_values = list(map(tuple, parent_values))
-    random_vector = np.random.uniform(size=(n))
-
-    start = time()
-    _sample_cpt(cpt.array, parent_values, random_vector)
-    end = time()
-    print(end - start)
 
 
 def test_cpd_init():
@@ -121,7 +112,7 @@ def test_cpd_sample_params():
 
 def test_cpd_sample():
     dag = test_dag()
-    cpd = ConditionalProbabilityDistribution(dag.vs[1], noise_scale=0)
+    cpd = ConditionalProbabilityDistribution(dag.vs[1], std=0)
     cpd.sample_parameters(weights=[1])
     assert np.allclose(cpd.sample(np.ones((10, 4))), 2)
     with pytest.raises(TypeError):
@@ -129,6 +120,6 @@ def test_cpd_sample():
     with pytest.raises(IndexError):
         cpd.sample(np.ones((10, 1)))
 
-    cpd_no_parents = ConditionalProbabilityDistribution(dag.vs[0], noise_scale=0)
+    cpd_no_parents = ConditionalProbabilityDistribution(dag.vs[0], std=0)
     cpd_no_parents.sample_parameters(weights=[1])
     assert np.allclose(cpd_no_parents.sample(np.ones((10, 4))), 0)

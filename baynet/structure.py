@@ -8,7 +8,7 @@ from pathlib import Path
 import igraph
 import numpy as np
 
-from .parameters import ConditionalProbabilityDistribution
+from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
 
 
 def _nodes_sorted(nodes: Union[List[int], List[str], List[object]]) -> List[str]:
@@ -48,16 +48,19 @@ class DAG(igraph.Graph):
             self.name = kwargs['name']
         else:
             self.name = "unnamed"
+        self.data_type = None
 
     @property
     def __dict__(self) -> Dict:
         """Return dict of attributes needed for pickling."""
-        return {'nodes': list(self.nodes), 'edges': list(self.edges)}
+        return {'nodes': list(self.nodes), 'edges': list(self.edges), 'name': self.name, 'dtype': self.data_type}
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
         """Set new instance's state from a dict, used by pickle."""
         self.add_vertices(_nodes_sorted(state['nodes']))
         self.add_edges(state['edges'])
+        self.name = state['name']
+        self.data_type = state['dtype']
 
     @classmethod
     def from_modelstring(cls, modelstring: str) -> DAG:
@@ -203,25 +206,52 @@ class DAG(igraph.Graph):
             v_structures += node_v_structures
         return set(v_structures)
 
-    def generate_parameters(
+    def generate_continuous_parameters(
         self,
-        data_type: str,
-        possible_weights: Optional[Union[List[float], Tuple[float]]] = None,
-        noise_scale: float = 1.0,
+        possible_weights: Optional[List[float]] = None,
+        mean: Optional[float] = None,
+        std: Optional[float] = None,
         seed: Optional[int] = None,
     ) -> None:
-        """Populate parameters for each node."""
+        """Populate continuous conditional distributions for each node."""
+        for vertex in self.vs:
+            vertex['CPD'] = ConditionalProbabilityDistribution(vertex, mean=mean, std=std)
+            vertex['CPD'].sample_parameters(weights=possible_weights, seed=seed)
+        self.data_type = "continuous"
+
+    def generate_levels(
+        self,
+        cardinality_min: Optional[int] = None,
+        cardinality_max: Optional[int] = None,
+        seed: Optional[int] = None
+    ) -> None:
         if seed is not None:
             np.random.seed(seed)
-        if data_type in ['cont', 'continuous']:
-            for vertex in self.vs:
-                vertex['CPD'] = ConditionalProbabilityDistribution(vertex, noise_scale)
-                if possible_weights is not None:
-                    vertex['CPD'].sample_parameters(weights=possible_weights)
-                else:
-                    vertex['CPD'].sample_parameters()
-        else:
-            raise NotImplementedError("Graph.generate_parameters() only supports 'continuous'")
+        if cardinality_min is None:
+            cardinality_min = 2
+        if cardinality_max is None:
+            cardinality_max = 3
+        assert cardinality_max >= cardinality_min >= 2
+        for vertex in self.vs:
+            n_levels = np.random.randint(cardinality_min, cardinality_max+1)
+            vertex['levels'] = list(map(str, range(n_levels)))
+        return
+
+    def generate_discrete_parameters(
+        self,
+        alpha: Optional[float] = None,
+        cardinality_min: Optional[int] = None,
+        cardinality_max: Optional[int] = None,
+        seed: Optional[int] = None,
+    ) -> None:
+        """Populate discrete conditional parameter tables for each node."""
+        if  all(l is None for l in self.vs['levels']):
+            self.generate_levels(cardinality_min, cardinality_max, seed)
+        for vertex in self.vs:
+            vertex['CPD'] = ConditionalProbabilityTable(vertex)
+            vertex['CPD'].sample_parameters(alpha=alpha, seed=seed)
+        self.data_type = "discrete"
+
 
     def sample(self, n_samples: int, seed: Optional[int] = None) -> np.ndarray:
         """Sample n_samples rows of data from the graph."""
@@ -237,16 +267,16 @@ class DAG(igraph.Graph):
         """Represent DAG as a BIF file, optionally saving to file."""
         network_template = Template("network $name {\n}\n")
         continuous_variable_template = Template(
-            """variable $name {\n  type continuous;\n  $properties}\n"""
+            """variable $name {\n  type continuous;\n}\n"""
         )
         continuous_probability_template = Template(
-            """probability ( $node | $parents ) {\n  table $values ;\n  }\n"""
+            """probability ( $node | $parents ) {\n  table $values ;\n}\n"""
         )
         bif_string = network_template.safe_substitute(name=self.name)
 
         for vertex in self.vs:
             bif_string += continuous_variable_template.safe_substitute(
-                name=vertex['name'], properties=""
+                name=vertex['name']
             )
 
         for vertex in self.vs:
@@ -264,3 +294,4 @@ class DAG(igraph.Graph):
             filepath.write_text(bif_string)
 
         return bif_string
+

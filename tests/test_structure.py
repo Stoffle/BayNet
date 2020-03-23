@@ -158,7 +158,6 @@ def test_DAG_are_neighbours():
 
 def test_DAG_get_v_structures():
     dag = test_dag()
-    part_dag = partial_dag()
     reversed_dag = test_dag(True)
     assert partial_dag().get_v_structures() == {("C", "B", "D")}
     assert dag.get_v_structures() == set()
@@ -169,8 +168,9 @@ def test_DAG_get_v_structures():
 def test_DAG_pickling():
     dag = test_dag()
     state = dag.__dict__
-    dag_from_state = DAG()
+    dag_from_state = DAG(name="test")
     dag_from_state.__setstate__(state)
+    assert dag_from_state.name == "unnamed"
     p = pickle.dumps(dag)
     unpickled_dag = pickle.loads(p)
 
@@ -182,20 +182,33 @@ def test_DAG_pickling():
 
 def test_DAG_generate_parameters():
     dag = test_dag()
-    dag.generate_parameters(data_type='cont', possible_weights=[1], noise_scale=0.0)
+    dag.generate_continuous_parameters(possible_weights=[1], std=0.0)
     for v in dag.vs:
         assert np.allclose(v['CPD'].array, 1)
+        assert dag.data_type == "continuous"
 
-    with pytest.raises(NotImplementedError):
-        dag.generate_parameters(data_type='disc')
+    for levels in [["0", "1"], ["0", "1", "2"]]:
+        dag.vs['levels'] = [levels for v in dag.vs]
+        dag.generate_discrete_parameters()
+        assert dag.data_type == "discrete"
+        assert dag.vs[0]['CPD'].array.shape == (len(levels),)
+        assert dag.vs[1]['CPD'].array.shape == (len(levels), len(levels), len(levels))
+        assert dag.vs[2]['CPD'].array.shape == (len(levels), len(levels))
+        assert dag.vs[3]['CPD'].array.shape == (len(levels),)
 
 
-def test_DAG_sample():
+def test_DAG_sample_continuous():
     dag = test_dag()
-    dag.generate_parameters(data_type='cont', noise_scale=0.0)
+    dag.generate_continuous_parameters(std=0.0)
     assert np.allclose(dag.sample(10), 0)
 
-    dag.generate_parameters(data_type='cont', noise_scale=1.0)
+    dag.generate_continuous_parameters(std=1.0)
+    assert not np.allclose(dag.sample(10, seed=1), 0)
+
+
+def test_DAG_sample_discrete():
+    dag = test_dag()
+    dag.generate_discrete_parameters()
     assert not np.allclose(dag.sample(10, seed=1), 0)
 
 
@@ -207,21 +220,21 @@ def test_DAG_to_bif():
 }
 variable A {
   type continuous;
-  }
+}
 variable B {
   type continuous;
-  }
+}
 variable C {
   type continuous;
-  }
+}
 variable D {
   type continuous;
-  }
+}
 """
     )
 
     dag = test_dag()
-    dag.generate_parameters(data_type='cont', possible_weights=[2], noise_scale=0.0, seed=1)
+    dag.generate_continuous_parameters(possible_weights=[2], std=0.0, seed=1)
     dag.name = 'test_dag'
     assert (
         dag.to_bif()
@@ -229,22 +242,22 @@ variable D {
 }
 variable A {
   type continuous;
-  }
+}
 variable B {
   type continuous;
-  }
+}
 variable C {
   type continuous;
-  }
+}
 variable D {
   type continuous;
-  }
+}
 probability ( B | C, D ) {
   table 2, 2 ;
-  }
+}
 probability ( C | D ) {
   table 2 ;
-  }
+}
 """
     )
 
@@ -254,15 +267,15 @@ probability ( C | D ) {
     assert filepath.read_text() == dag.to_bif()
     filepath.unlink()
 
-    with pytest.raises(NotImplementedError):
-        dag = test_dag()
-        dag.generate_parameters(data_type='discrete')
-        assert (
-            dag.to_bif()
-            == """
-    
-        """
-        )
+    dag = test_dag()
+    dag.vs['levels'] = [["A", "B", "C"] for v in dag.vs]
+    dag.generate_discrete_parameters(seed=1)
+    # assert (
+    #     dag.to_bif()
+    #     == """
+
+    # """
+    # )
 
 
 def test_Graph():
