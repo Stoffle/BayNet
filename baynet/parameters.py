@@ -1,5 +1,5 @@
 """Parameter tables for Graph objects."""
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Optional, Dict, Any
 from itertools import product
 import numpy as np
 import igraph
@@ -17,7 +17,6 @@ class ConditionalProbabilityTable:
         if any([pl is None for pl in self.parent_levels]):
             raise ValueError(f"Parent of {node['name']} missing attribute 'levels'")
         self.n_parent_levels = [len(v['levels']) for v in node.neighbors(mode="in")]
-        self._n_parents = len(self.n_parent_levels)
         self.parents = np.array([parent.index for parent in node.neighbors(mode="in")], dtype=int)
         self.parent_names = [parent['name'] for parent in node.neighbors(mode="in")]
 
@@ -29,6 +28,19 @@ class ConditionalProbabilityTable:
 
         self.array = np.zeros([*self.n_parent_levels, len(node_levels)], dtype=float)
         self.cumsum_array = np.zeros([*self.n_parent_levels, len(node_levels)], dtype=float)
+
+    @classmethod
+    def from_dict(cls, node: igraph.Vertex, **kwargs):
+        cpd = cls(node)
+        kwargs['array'] = np.array(kwargs['array'])
+        cpd.__dict__.update(**kwargs)
+        return cpd
+
+    def to_dict(self) -> Dict[str, Any]:
+        kwargs = self.__dict__
+        kwargs['array'] = self.array.tolist()
+        kwargs['parents'] = self.parents.tolist()
+        return kwargs
 
     @property
     def parent_configurations(self) -> List[Tuple[str, ...]]:
@@ -107,8 +119,20 @@ class ConditionalProbabilityDistribution:
         self.std = std
         self.parents = np.array([parent.index for parent in node.neighbors(mode="in")], dtype=int)
         self.parent_names = [parent['name'] for parent in node.neighbors(mode="in")]
-        self._n_parents = len(self.parents)
-        self.array = np.zeros(self._n_parents, dtype=float)
+        self.array = np.zeros(len(self.parents), dtype=float)
+
+    @classmethod
+    def from_dict(cls, node: igraph.Vertex, **kwargs):
+        cpd = cls(node)
+        kwargs['array'] = np.array(kwargs['array'])
+        cpd.__dict__.update(**kwargs)
+        return cpd
+
+    def to_dict(self) -> Dict[str, Any]:
+        kwargs = self.__dict__
+        kwargs['array'] = self.array.tolist()
+        kwargs['parents'] = self.parents.tolist()
+        return kwargs
 
     def sample_parameters(
         self, weights: Optional[List[float]] = None, seed: Optional[int] = None
@@ -118,12 +142,12 @@ class ConditionalProbabilityDistribution:
             np.random.seed(seed)
         if weights is None:
             weights = [-2.0, -0.5, 0.5, 2.0]
-        self.array = np.random.choice(weights, self._n_parents)
+        self.array = np.random.choice(weights, len(self.parents))
 
     def sample(self, incomplete_data: np.ndarray) -> np.ndarray:
         """Sample column based on parent columns in incomplete data matrix."""
         noise = np.random.normal(loc=self.mean, scale=self.std, size=incomplete_data.shape[0])
-        if self._n_parents == 0:
+        if len(self.parents) == 0:
             return noise
         parent_values = incomplete_data[:, self.parents]
         return parent_values.dot(self.array) + noise

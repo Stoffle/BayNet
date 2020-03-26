@@ -1,0 +1,37 @@
+name: DAG schema
+
+schema;DAG:
+  type: map
+  matching-rule: 'any'
+  mapping:
+    DAG:
+      type: map
+      mapping:
+        vertices:
+          sequence:
+            - type: vertex
+
+schema;vertex:
+  type: map
+  matching-rule: 'any'
+  mapping:
+    name:
+      type: str
+    cpd:
+      - type: CPD
+      - type: CPT
+
+
+schema;CPD:
+  type: seq
+  sequence:
+    type: map
+
+schema;CPT:
+  type: ndarray
+
+schema;ndarray:
+  type: seq
+  sequence:
+    type: ndarray
+

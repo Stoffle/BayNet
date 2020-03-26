@@ -8,6 +8,7 @@ from pathlib import Path
 import igraph
 import numpy as np
 
+from . import parameters
 from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
 
 
@@ -43,24 +44,31 @@ class DAG(igraph.Graph):
     def __init__(self, *args: None, **kwargs: Any) -> None:
         """Create a graph object."""
         # Grab *args and **kwargs because pickle/igraph do weird things here
-        super().__init__(directed=True, vertex_attrs={'CPD': None, 'levels': None})
+        super().__init__(directed=True, vertex_attrs={'CPD': None})
         if 'name' in kwargs.keys():
             self.name = kwargs['name']
         else:
             self.name = "unnamed"
-        self.data_type = None
 
     @property
     def __dict__(self) -> Dict:
         """Return dict of attributes needed for pickling."""
-        return {'nodes': list(self.nodes), 'edges': list(self.edges), 'name': self.name, 'dtype': self.data_type}
+        if self.vs['CPD'] == [None for _ in self.vs]:
+            return {'name': self.name, 'vs': [{'name': v['name']} for v in self.vs]}
+        return {'name': self.name, 'vs': [{'name': v['name'], 'CPD': v['CPD'].to_dict(), 'type': type(v['CPD'])} for v in self.vs], 'edges': self.edges}
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
-        """Set new instance's state from a dict, used by pickle."""
-        self.add_vertices(_nodes_sorted(state['nodes']))
+        """Set new instance's state from a dict."""
+        for v in state['vs']:
+            if 'CPD' in v.keys():
+                CPD = getattr(parameters, v['type']).from_dict(v['CPD'])
+                self.add_vertex(name=v['name'], CPD=CPD)
+            else:
+                self.add_vertex(name=v['name'])
+        self.add_vertices(_nodes_sorted([v['name'] for v in state['vs']]))
         self.add_edges(state['edges'])
         self.name = state['name']
-        self.data_type = state['dtype']
+        
 
     @classmethod
     def from_modelstring(cls, modelstring: str) -> DAG:
@@ -217,7 +225,6 @@ class DAG(igraph.Graph):
         for vertex in self.vs:
             vertex['CPD'] = ConditionalProbabilityDistribution(vertex, mean=mean, std=std)
             vertex['CPD'].sample_parameters(weights=possible_weights, seed=seed)
-        self.data_type = "continuous"
 
     def generate_levels(
         self,
@@ -250,7 +257,6 @@ class DAG(igraph.Graph):
         for vertex in self.vs:
             vertex['CPD'] = ConditionalProbabilityTable(vertex)
             vertex['CPD'].sample_parameters(alpha=alpha, seed=seed)
-        self.data_type = "discrete"
 
 
     def sample(self, n_samples: int, seed: Optional[int] = None) -> np.ndarray:
