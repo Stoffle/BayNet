@@ -20,7 +20,6 @@ class ConditionalProbabilityTable:
             raise ValueError(f"Parent of {node['name']} missing attribute 'levels'")
         self.n_parent_levels = [len(v['levels']) for v in node.neighbors(mode="in")]
         self.parents = np.array([parent.index for parent in node.neighbors(mode="in")], dtype=int)
-        self.parent_names = [parent['name'] for parent in node.neighbors(mode="in")]
 
         node_levels = node['levels']
         if node_levels is None:
@@ -36,6 +35,7 @@ class ConditionalProbabilityTable:
         cpd = cls()
         kwargs['array'] = np.array(kwargs['array'])
         kwargs['parents'] = np.array(kwargs['parents'])
+        kwargs['cumsum_array'] = np.array(kwargs['cumsum_array'])
         cpd.__dict__.update(**kwargs)
         return cpd
 
@@ -43,6 +43,7 @@ class ConditionalProbabilityTable:
         kwargs = self.__dict__.copy()
         kwargs['array'] = self.array.tolist()
         kwargs['parents'] = self.parents.tolist()
+        kwargs['cumsum_array'] = self.cumsum_array.tolist()
         return kwargs
 
     @property
@@ -123,7 +124,6 @@ class ConditionalProbabilityDistribution:
         if node is None:
             return
         self.parents = np.array([parent.index for parent in node.neighbors(mode="in")], dtype=int)
-        self.parent_names = [parent['name'] for parent in node.neighbors(mode="in")]
         self.array = np.zeros(len(self.parents), dtype=float)
 
     @classmethod

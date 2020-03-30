@@ -6,9 +6,10 @@ import pytest
 import networkx as nx
 import numpy as np
 from igraph import VertexSeq
+import yaml
 
 from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
-from .utils import TEST_MODELSTRING, REVERSED_MODELSTRING, test_dag, partial_dag
+from .utils import TEST_MODELSTRING, REVERSED_MODELSTRING, test_dag, partial_dag, temp_out
 
 
 def test_nodes_sorted():
@@ -107,7 +108,7 @@ def test_DAG_get_numpy_adjacency():
 
 def test_DAG_get_modelstring():
     assert test_dag().get_modelstring() == TEST_MODELSTRING
-    assert test_dag(reversed=True).get_modelstring() == REVERSED_MODELSTRING
+    assert test_dag(reverse=True).get_modelstring() == REVERSED_MODELSTRING
 
 
 def test_DAG_get_ancestors():
@@ -167,17 +168,33 @@ def test_DAG_get_v_structures():
 
 def test_DAG_pickling():
     dag = test_dag()
-    state = dag.__dict__
-    dag_from_state = DAG(name="test")
-    dag_from_state.__setstate__(state)
-    assert dag_from_state.name == "unnamed"
     p = pickle.dumps(dag)
     unpickled_dag = pickle.loads(p)
 
-    assert dag.nodes == dag_from_state.nodes
-    assert dag.edges == dag_from_state.edges == dag_from_state.directed_edges
     assert dag.nodes == unpickled_dag.nodes
     assert dag.edges == unpickled_dag.edges == unpickled_dag.directed_edges
+
+
+def test_DAG_yaml_continuous(temp_out):
+    dag_path = temp_out / 'cont.yml'
+    dag = test_dag()
+    dag.generate_continuous_parameters()
+    dag.save(dag_path)
+    dag2 = DAG.load(dag_path)
+    assert dag.nodes == dag2.nodes
+    assert dag.edges == dag2.edges
+    assert dag.__dict__['vs'] == dag2.__dict__['vs']
+
+
+def test_DAG_yaml_discrete(temp_out):
+    dag_path = temp_out / 'cont.yml'
+    dag = test_dag()
+    dag.generate_discrete_parameters()
+    dag.save(dag_path)
+    dag2 = DAG.load(dag_path)
+    assert dag.nodes == dag2.nodes
+    assert dag.edges == dag2.edges
+    assert dag.__dict__['vs'] == dag2.__dict__['vs']
 
 
 def test_DAG_generate_parameters():

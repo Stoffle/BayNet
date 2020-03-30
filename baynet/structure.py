@@ -7,6 +7,7 @@ from pathlib import Path
 
 import igraph
 import numpy as np
+from yaml import safe_dump, safe_load
 
 from . import parameters
 from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
@@ -54,8 +55,8 @@ class DAG(igraph.Graph):
     def __dict__(self) -> Dict:
         """Return dict of attributes needed for pickling."""
         if self.vs['CPD'] == [None for _ in self.vs]:
-            return {'name': self.name, 'vs': [{'name': v['name']} for v in self.vs]}
-        return {'name': self.name, 'vs': [{'name': v['name'], 'CPD': v['CPD'].to_dict(), 'type': type(v['CPD']).__name__} for v in self.vs], 'edges': self.edges}
+            return {'name': self.name, 'vs': [{'name': v['name']} for v in self.vs], 'edges': list(self.edges)}
+        return {'name': self.name, 'vs': [{'name': v['name'], 'CPD': v['CPD'].to_dict(), 'type': type(v['CPD']).__name__} for v in self.vs], 'edges': list(self.edges)}
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
         """Set new instance's state from a dict."""
@@ -65,7 +66,8 @@ class DAG(igraph.Graph):
                 self.add_vertex(name=vertex['name'], CPD=cpd)
             else:
                 self.add_vertex(name=vertex['name'])
-        self.add_edges(state.get('edges', []))
+        edges = list(map(tuple, state.get('edges', [])))
+        self.add_edges(edges)
         self.name = state['name']
         
 
@@ -151,8 +153,8 @@ class DAG(igraph.Graph):
         for source, target in edges:
             if (source, target) in self.edges:
                 raise ValueError(f"Edge {source}->{target} already exists in Graph")
-            if len(edges) != len(set(edges)):
-                raise ValueError("Edges list contains duplicates")
+        if len(edges) != len(set(edges)):
+            raise ValueError("Edges list contains duplicates")
         super().add_edges(edges)
         assert self.is_dag()
 
@@ -259,7 +261,6 @@ class DAG(igraph.Graph):
             vertex['CPD'] = ConditionalProbabilityTable(vertex)
             vertex['CPD'].sample_parameters(alpha=alpha, seed=seed)
 
-
     def sample(self, n_samples: int, seed: Optional[int] = None) -> np.ndarray:
         """Sample n_samples rows of data from the graph."""
         if seed is not None:
@@ -270,5 +271,24 @@ class DAG(igraph.Graph):
             data[:, node_idx] = self.vs[node_idx]['CPD'].sample(data)
         return data
 
+    def save(self, yaml_path: Optional[Path] = None) -> Optional[str]:
+        """Save DAG as yaml file, or string if no path is specified."""
+        if yaml_path is None:
+            return safe_dump(self.__dict__)
+        with yaml_path.open('w') as stream:
+            safe_dump(self.__dict__, stream=stream)
+
+    @classmethod
+    def load(cls, yaml: Union[Path, str]):
+        """Load DAG from yaml file or string."""
+        if isinstance(yaml, Path):
+            with yaml.open('r') as stream:
+                yaml_str = stream.read()
+        else:
+            yaml_str = yaml
+        state = safe_load(yaml_str)
+        dag = cls()
+        dag.__setstate__(state)
+        return dag
 
 
