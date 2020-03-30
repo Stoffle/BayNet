@@ -46,15 +46,6 @@ class ConditionalProbabilityTable:
         kwargs['cumsum_array'] = self.cumsum_array.tolist()
         return kwargs
 
-    @property
-    def parent_configurations(self) -> List[Tuple[str, ...]]:
-        return list(product(*self.parent_levels))
-    
-    @property
-    def parent_configurations_idx(self) -> List[Tuple[int, ...]]:
-        int_parent_levels = [list(range(parent_levels)) for parent_levels in self.n_parent_levels]
-        return list(product(*int_parent_levels))
-
     def rescale_probabilities(self) -> None:
         """
         Rescale probability table rows.

@@ -27,13 +27,6 @@ def test_CPT_init():
         ConditionalProbabilityTable(dag.vs[dag.get_node_index("A")])
 
 
-def test_CPT_parent_configurations():
-    dag = test_dag()
-    dag.vs['levels'] = [["0", "1"] for v in dag.vs]
-    cpt = ConditionalProbabilityTable(dag.vs[1])
-    assert cpt.parent_configurations == [("0", "0"), ("0", "1"), ("1", "0"), ("1", "1")]
-
-
 def test_CPT_rescale():
     dag = test_dag()
     for n_levels in [1, 2, 3, 4]:
