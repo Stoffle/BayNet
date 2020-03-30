@@ -61,7 +61,7 @@ def test_CPT_sample_parameters():
     dag.vs['levels'] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
     cpt_shape = cpt.array.shape
-    cpt.sample_parameters()
+    cpt.sample_parameters(seed=0)
     assert cpt.array.shape == cpt_shape
 
 
@@ -99,7 +99,7 @@ def test_cpd_init():
 def test_cpd_sample_params():
     dag = test_dag()
     cpd = ConditionalProbabilityDistribution(dag.vs[1])
-    cpd.sample_parameters(weights=[1])
+    cpd.sample_parameters(weights=[1], seed=0)
     assert np.allclose(cpd.array, 1)
 
 

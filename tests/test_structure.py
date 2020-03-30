@@ -175,7 +175,7 @@ def test_DAG_pickling():
     assert dag.edges == unpickled_dag.edges == unpickled_dag.directed_edges
 
 
-def test_DAG_yaml_continuous(temp_out):
+def test_DAG_yaml_continuous_file(temp_out):
     dag_path = temp_out / 'cont.yml'
     dag = test_dag()
     dag.generate_continuous_parameters()
@@ -186,12 +186,32 @@ def test_DAG_yaml_continuous(temp_out):
     assert dag.__dict__['vs'] == dag2.__dict__['vs']
 
 
-def test_DAG_yaml_discrete(temp_out):
+def test_DAG_yaml_continuous_str():
+    dag = test_dag()
+    dag.generate_continuous_parameters()
+    dag_string = dag.save()
+    dag2 = DAG.load(dag_string)
+    assert dag.nodes == dag2.nodes
+    assert dag.edges == dag2.edges
+    assert dag.__dict__['vs'] == dag2.__dict__['vs']
+
+
+def test_DAG_yaml_discrete_file(temp_out):
     dag_path = temp_out / 'cont.yml'
     dag = test_dag()
-    dag.generate_discrete_parameters()
+    dag.generate_discrete_parameters(seed=0)
     dag.save(dag_path)
     dag2 = DAG.load(dag_path)
+    assert dag.nodes == dag2.nodes
+    assert dag.edges == dag2.edges
+    assert dag.__dict__['vs'] == dag2.__dict__['vs']
+
+
+def test_DAG_yaml_discrete_str():
+    dag = test_dag()
+    dag.generate_discrete_parameters(seed=0)
+    dag_string = dag.save()
+    dag2 = DAG.load(dag_string)
     assert dag.nodes == dag2.nodes
     assert dag.edges == dag2.edges
     assert dag.__dict__['vs'] == dag2.__dict__['vs']

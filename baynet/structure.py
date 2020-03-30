@@ -72,15 +72,15 @@ class DAG(igraph.Graph):
         
 
     @classmethod
-    def from_modelstring(cls, modelstring: str) -> DAG:
+    def from_modelstring(cls, modelstring: str, **kwargs: Dict[str, Any]) -> DAG:
         """Instantiate a Graph object from a modelstring."""
-        dag = cls()
+        dag = cls(**kwargs)
         dag.add_vertices(_nodes_from_modelstring(modelstring))
         dag.add_edges(_edges_from_modelstring(modelstring))
         return dag
 
     @classmethod
-    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> DAG:
+    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str], **kwargs: Dict[str, Any]) -> DAG:
         """Instantiate a Graph object from an adjacency matrix."""
         if isinstance(amat, np.ndarray):
             amat = amat.tolist()
@@ -90,14 +90,14 @@ class DAG(igraph.Graph):
             raise ValueError(
                 f"Graph.from_amat() expected `colnames` of type list, but got {type(colnames)}"
             )
-        dag = cls.Adjacency(amat)
+        dag = cls.Adjacency(amat, **kwargs)
         dag.vs['name'] = colnames
         return dag
 
     @classmethod
-    def from_other(cls, other_graph: Any) -> DAG:
+    def from_other(cls, other_graph: Any, **kwargs: Dict[str, Any]) -> DAG:
         """Attempt to create a Graph from an existing graph object (nx.DiGraph etc.)."""
-        graph = cls()
+        graph = cls(**kwargs)
         graph.add_vertices(_nodes_sorted(other_graph.nodes))
         graph.add_edges(other_graph.edges)
         return graph
