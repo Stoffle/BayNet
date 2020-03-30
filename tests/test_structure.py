@@ -185,12 +185,10 @@ def test_DAG_generate_parameters():
     dag.generate_continuous_parameters(possible_weights=[1], std=0.0)
     for v in dag.vs:
         assert np.allclose(v['CPD'].array, 1)
-        assert dag.data_type == "continuous"
 
     for levels in [["0", "1"], ["0", "1", "2"]]:
         dag.vs['levels'] = [levels for v in dag.vs]
         dag.generate_discrete_parameters()
-        assert dag.data_type == "discrete"
         assert dag.vs[0]['CPD'].array.shape == (len(levels),)
         assert dag.vs[1]['CPD'].array.shape == (len(levels), len(levels), len(levels))
         assert dag.vs[2]['CPD'].array.shape == (len(levels), len(levels))

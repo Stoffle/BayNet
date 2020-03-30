@@ -65,7 +65,7 @@ class DAG(igraph.Graph):
                 self.add_vertex(name=vertex['name'], CPD=cpd)
             else:
                 self.add_vertex(name=vertex['name'])
-        self.add_edges(state['edges'])
+        self.add_edges(state.get('edges', []))
         self.name = state['name']
         
 
@@ -251,7 +251,9 @@ class DAG(igraph.Graph):
         seed: Optional[int] = None,
     ) -> None:
         """Populate discrete conditional parameter tables for each node."""
-        if  all(l is None for l in self.vs['levels']):
+        try:
+            self.vs['levels']
+        except KeyError:
             self.generate_levels(cardinality_min, cardinality_max, seed)
         for vertex in self.vs:
             vertex['CPD'] = ConditionalProbabilityTable(vertex)
