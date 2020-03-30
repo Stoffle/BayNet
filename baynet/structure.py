@@ -270,35 +270,5 @@ class DAG(igraph.Graph):
             data[:, node_idx] = self.vs[node_idx]['CPD'].sample(data)
         return data
 
-    def to_bif(self, filepath: Optional[Path] = None) -> str:
-        """Represent DAG as a BIF file, optionally saving to file."""
-        network_template = Template("network $name {\n}\n")
-        continuous_variable_template = Template(
-            """variable $name {\n  type continuous;\n}\n"""
-        )
-        continuous_probability_template = Template(
-            """probability ( $node | $parents ) {\n  table $values ;\n}\n"""
-        )
-        bif_string = network_template.safe_substitute(name=self.name)
 
-        for vertex in self.vs:
-            bif_string += continuous_variable_template.safe_substitute(
-                name=vertex['name']
-            )
-
-        for vertex in self.vs:
-            if vertex['CPD'] is not None and vertex['CPD'].array.size > 0:
-                bif_string += continuous_probability_template.safe_substitute(
-                    node=vertex['name'],
-                    parents=', '.join(vertex['CPD'].parent_names),
-                    values=', '.join(list(vertex['CPD'].array.astype(str))),
-                )
-        if filepath is not None:
-            if filepath.is_dir():
-                filepath = filepath / 'graph.bif'
-            filepath.resolve()
-            assert filepath.suffix == '.bif'
-            filepath.write_text(bif_string)
-
-        return bif_string
 
