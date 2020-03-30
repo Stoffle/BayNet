@@ -8,8 +8,10 @@ import igraph
 class ConditionalProbabilityTable:
     """Conditional probability table for categorical data."""
 
-    def __init__(self, node: igraph.Vertex) -> None:
+    def __init__(self, node: Optional[igraph.Vertex] = None) -> None:
         """Initialise a conditional probability table."""
+        if node is None:
+            return
         self._scaled = False
         # sorted_parents = sorted(node.neighbors(mode="in"), key = lambda x: x['name'])
         # print(sorted_parents)
@@ -30,14 +32,15 @@ class ConditionalProbabilityTable:
         self.cumsum_array = np.zeros([*self.n_parent_levels, len(node_levels)], dtype=float)
 
     @classmethod
-    def from_dict(cls, node: igraph.Vertex, **kwargs):
-        cpd = cls(node)
+    def from_dict(cls, **kwargs):
+        cpd = cls()
         kwargs['array'] = np.array(kwargs['array'])
+        kwargs['parents'] = np.array(kwargs['parents'])
         cpd.__dict__.update(**kwargs)
         return cpd
 
     def to_dict(self) -> Dict[str, Any]:
-        kwargs = self.__dict__
+        kwargs = self.__dict__.copy()
         kwargs['array'] = self.array.tolist()
         kwargs['parents'] = self.parents.tolist()
         return kwargs
@@ -109,7 +112,7 @@ def _sample_cpt(
 class ConditionalProbabilityDistribution:
     """Conditional probability distribution for continuous data."""
 
-    def __init__(self, node: igraph.Vertex, mean: Optional[float] = None, std: Optional[float] = None) -> None:
+    def __init__(self, node: Optional[igraph.Vertex] = None, mean: Optional[float] = None, std: Optional[float] = None) -> None:
         """Initialise a conditional probability table."""
         if mean is None:
             mean = 0.0
@@ -117,19 +120,22 @@ class ConditionalProbabilityDistribution:
         if std is None:
             std = 1.0
         self.std = std
+        if node is None:
+            return
         self.parents = np.array([parent.index for parent in node.neighbors(mode="in")], dtype=int)
         self.parent_names = [parent['name'] for parent in node.neighbors(mode="in")]
         self.array = np.zeros(len(self.parents), dtype=float)
 
     @classmethod
-    def from_dict(cls, node: igraph.Vertex, **kwargs):
-        cpd = cls(node)
+    def from_dict(cls, **kwargs):
+        cpd = cls()
         kwargs['array'] = np.array(kwargs['array'])
+        kwargs['parents'] = np.array(kwargs['parents'])
         cpd.__dict__.update(**kwargs)
         return cpd
 
     def to_dict(self) -> Dict[str, Any]:
-        kwargs = self.__dict__
+        kwargs = self.__dict__.copy()
         kwargs['array'] = self.array.tolist()
         kwargs['parents'] = self.parents.tolist()
         return kwargs

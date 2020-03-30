@@ -55,17 +55,16 @@ class DAG(igraph.Graph):
         """Return dict of attributes needed for pickling."""
         if self.vs['CPD'] == [None for _ in self.vs]:
             return {'name': self.name, 'vs': [{'name': v['name']} for v in self.vs]}
-        return {'name': self.name, 'vs': [{'name': v['name'], 'CPD': v['CPD'].to_dict(), 'type': type(v['CPD'])} for v in self.vs], 'edges': self.edges}
+        return {'name': self.name, 'vs': [{'name': v['name'], 'CPD': v['CPD'].to_dict(), 'type': type(v['CPD']).__name__} for v in self.vs], 'edges': self.edges}
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
         """Set new instance's state from a dict."""
-        for v in state['vs']:
-            if 'CPD' in v.keys():
-                CPD = getattr(parameters, v['type']).from_dict(v['CPD'])
-                self.add_vertex(name=v['name'], CPD=CPD)
+        for vertex in state['vs']:
+            if 'CPD' in vertex.keys():
+                cpd = getattr(parameters, vertex['type']).from_dict(**vertex['CPD'])
+                self.add_vertex(name=vertex['name'], CPD=cpd)
             else:
-                self.add_vertex(name=v['name'])
-        self.add_vertices(_nodes_sorted([v['name'] for v in state['vs']]))
+                self.add_vertex(name=vertex['name'])
         self.add_edges(state['edges'])
         self.name = state['name']
         
