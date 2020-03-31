@@ -6,6 +6,7 @@ from pathlib import Path
 
 import igraph
 import numpy as np
+import pandas as pd
 from yaml import safe_dump, safe_load
 
 from . import parameters
@@ -271,14 +272,19 @@ class DAG(igraph.Graph):
             vertex['CPD'] = ConditionalProbabilityTable(vertex)
             vertex['CPD'].sample_parameters(alpha=alpha, seed=seed)
 
-    def sample(self, n_samples: int, seed: Optional[int] = None) -> np.ndarray:
+    def sample(self, n_samples: int, seed: Optional[int] = None) -> pd.DataFrame:
         """Sample n_samples rows of data from the graph."""
         if seed is not None:
             np.random.seed(seed)
         sorted_nodes = self.topological_sorting(mode="out")
-        data = np.zeros((n_samples, len(self.nodes)))
+        if all(isinstance(vertex['CPD'], ConditionalProbabilityTable) for vertex in self.vs):
+            dtype = int
+        elif all(isinstance(vertex['CPD'], ConditionalProbabilityDistribution) for vertex in self.vs):
+            dtype = float
+        data = np.zeros((n_samples, len(self.nodes))).astype(dtype)
         for node_idx in sorted_nodes:
             data[:, node_idx] = self.vs[node_idx]['CPD'].sample(data)
+        data = pd.DataFrame(data, columns=[vertex['name'] for vertex in self.vs])
         return data
 
     def save(self, yaml_path: Optional[Path] = None) -> Optional[str]:
