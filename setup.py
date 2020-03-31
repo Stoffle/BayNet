@@ -1,11 +1,12 @@
 from setuptools import setup, find_packages
+from baynet import __version__
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
     name="BayNet",
-    version="0.0.2-dev",
+    version=__version__,
     author="Chris Robinson",
     author_email="c.f.robinson@sussex.ac.uk",
     description="(another) Python Bayesian Network library",

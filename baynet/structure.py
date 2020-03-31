@@ -1,7 +1,7 @@
 """Graph object."""
 from __future__ import annotations
 from itertools import combinations
-from typing import List, Union, Tuple, Set, Any, Dict, Optional
+from typing import List, Union, Tuple, Set, Any, Dict, Optional, Type
 from pathlib import Path
 
 import igraph
@@ -277,6 +277,7 @@ class DAG(igraph.Graph):
         if seed is not None:
             np.random.seed(seed)
         sorted_nodes = self.topological_sorting(mode="out")
+        dtype: Union[Type[int], Type[float]]
         if all(isinstance(vertex['CPD'], ConditionalProbabilityTable) for vertex in self.vs):
             dtype = int
         elif all(

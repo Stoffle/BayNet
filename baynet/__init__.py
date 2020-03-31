@@ -1,4 +1,5 @@
 """Python Bayesian Network library."""
+__version__ = "0.1.4-dev"
 import warnings
 from typing import Any
 from baynet.structure import DAG
