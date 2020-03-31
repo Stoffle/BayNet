@@ -279,7 +279,9 @@ class DAG(igraph.Graph):
         sorted_nodes = self.topological_sorting(mode="out")
         if all(isinstance(vertex['CPD'], ConditionalProbabilityTable) for vertex in self.vs):
             dtype = int
-        elif all(isinstance(vertex['CPD'], ConditionalProbabilityDistribution) for vertex in self.vs):
+        elif all(
+            isinstance(vertex['CPD'], ConditionalProbabilityDistribution) for vertex in self.vs
+        ):
             dtype = float
         data = np.zeros((n_samples, len(self.nodes))).astype(dtype)
         for node_idx in sorted_nodes:
