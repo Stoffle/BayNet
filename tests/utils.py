@@ -1,7 +1,4 @@
-import tempfile
-from pathlib import Path
 import numpy as np
-import pytest
 from baynet.structure import DAG
 
 TEST_MODELSTRING = "[A][B|C:D][C|D][D]"
@@ -21,12 +18,3 @@ def partial_dag() -> DAG:
 
 def empty_dag() -> DAG:
     return DAG.from_amat(np.zeros((4, 4)), list("ABCD"), name='empty_dag')
-
-
-@pytest.fixture(scope="function")
-def temp_out():
-    """
-    Create temporary directory for storing test outputs.
-    """
-    with tempfile.TemporaryDirectory() as tmpdir:
-        yield Path(tmpdir).resolve()
