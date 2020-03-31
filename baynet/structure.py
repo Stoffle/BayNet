@@ -2,13 +2,14 @@
 from __future__ import annotations
 from itertools import combinations
 from typing import List, Union, Tuple, Set, Any, Dict, Optional
-from string import Template
 from pathlib import Path
 
 import igraph
 import numpy as np
+from yaml import safe_dump, safe_load
 
-from .parameters import ConditionalProbabilityDistribution
+from . import parameters
+from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
 
 
 def _nodes_sorted(nodes: Union[List[int], List[str], List[object]]) -> List[str]:
@@ -43,7 +44,7 @@ class DAG(igraph.Graph):
     def __init__(self, *args: None, **kwargs: Any) -> None:
         """Create a graph object."""
         # Grab *args and **kwargs because pickle/igraph do weird things here
-        super().__init__(directed=True, vertex_attrs={'CPD': None, 'levels': None})
+        super().__init__(directed=True, vertex_attrs={'CPD': None})
         if 'name' in kwargs.keys():
             self.name = kwargs['name']
         else:
@@ -52,23 +53,44 @@ class DAG(igraph.Graph):
     @property
     def __dict__(self) -> Dict:
         """Return dict of attributes needed for pickling."""
-        return {'nodes': list(self.nodes), 'edges': list(self.edges)}
+        if self.vs['CPD'] == [None for _ in self.vs]:
+            return {
+                'name': self.name,
+                'vs': [{'name': v['name']} for v in self.vs],
+                'edges': list(self.edges),
+            }
+        return {
+            'name': self.name,
+            'vs': [
+                {'name': v['name'], 'CPD': v['CPD'].to_dict(), 'type': type(v['CPD']).__name__}
+                for v in self.vs
+            ],
+            'edges': list(self.edges),
+        }
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
-        """Set new instance's state from a dict, used by pickle."""
-        self.add_vertices(_nodes_sorted(state['nodes']))
-        self.add_edges(state['edges'])
+        """Set new instance's state from a dict."""
+        for vertex in state['vs']:
+            if 'CPD' in vertex.keys():
+                cpd = getattr(parameters, vertex['type']).from_dict(**vertex['CPD'])
+                self.add_vertex(name=vertex['name'], CPD=cpd)
+            else:
+                self.add_vertex(name=vertex['name'])
+        self.add_edges([(node_from, node_to) for node_from, node_to in state.get('edges', [])])
+        self.name = state['name']
 
     @classmethod
-    def from_modelstring(cls, modelstring: str) -> DAG:
+    def from_modelstring(cls, modelstring: str, **kwargs: Dict[str, Any]) -> 'DAG':
         """Instantiate a Graph object from a modelstring."""
-        dag = cls()
+        dag = cls(**kwargs)
         dag.add_vertices(_nodes_from_modelstring(modelstring))
         dag.add_edges(_edges_from_modelstring(modelstring))
         return dag
 
     @classmethod
-    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> DAG:
+    def from_amat(
+        cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str], **kwargs: Dict[str, Any]
+    ) -> 'DAG':
         """Instantiate a Graph object from an adjacency matrix."""
         if isinstance(amat, np.ndarray):
             amat = amat.tolist()
@@ -78,14 +100,14 @@ class DAG(igraph.Graph):
             raise ValueError(
                 f"Graph.from_amat() expected `colnames` of type list, but got {type(colnames)}"
             )
-        dag = cls.Adjacency(amat)
+        dag = cls.Adjacency(amat, **kwargs)
         dag.vs['name'] = colnames
         return dag
 
     @classmethod
-    def from_other(cls, other_graph: Any) -> DAG:
+    def from_other(cls, other_graph: Any, **kwargs: Dict[str, Any]) -> 'DAG':
         """Attempt to create a Graph from an existing graph object (nx.DiGraph etc.)."""
-        graph = cls()
+        graph = cls(**kwargs)
         graph.add_vertices(_nodes_sorted(other_graph.nodes))
         graph.add_edges(other_graph.edges)
         return graph
@@ -141,8 +163,8 @@ class DAG(igraph.Graph):
         for source, target in edges:
             if (source, target) in self.edges:
                 raise ValueError(f"Edge {source}->{target} already exists in Graph")
-            if len(edges) != len(set(edges)):
-                raise ValueError("Edges list contains duplicates")
+        if len(edges) != len(set(edges)):
+            raise ValueError("Edges list contains duplicates")
         super().add_edges(edges)
         assert self.is_dag()
 
@@ -203,25 +225,51 @@ class DAG(igraph.Graph):
             v_structures += node_v_structures
         return set(v_structures)
 
-    def generate_parameters(
+    def generate_continuous_parameters(
         self,
-        data_type: str,
-        possible_weights: Optional[Union[List[float], Tuple[float]]] = None,
-        noise_scale: float = 1.0,
+        possible_weights: Optional[List[float]] = None,
+        mean: Optional[float] = None,
+        std: Optional[float] = None,
         seed: Optional[int] = None,
     ) -> None:
-        """Populate parameters for each node."""
+        """Populate continuous conditional distributions for each node."""
+        for vertex in self.vs:
+            vertex['CPD'] = ConditionalProbabilityDistribution(vertex, mean=mean, std=std)
+            vertex['CPD'].sample_parameters(weights=possible_weights, seed=seed)
+
+    def generate_levels(
+        self,
+        cardinality_min: Optional[int] = None,
+        cardinality_max: Optional[int] = None,
+        seed: Optional[int] = None,
+    ) -> None:
+        """Set number of levels in each node, for generating discrete data."""
         if seed is not None:
             np.random.seed(seed)
-        if data_type in ['cont', 'continuous']:
-            for vertex in self.vs:
-                vertex['CPD'] = ConditionalProbabilityDistribution(vertex, noise_scale)
-                if possible_weights is not None:
-                    vertex['CPD'].sample_parameters(weights=possible_weights)
-                else:
-                    vertex['CPD'].sample_parameters()
-        else:
-            raise NotImplementedError("Graph.generate_parameters() only supports 'continuous'")
+        if cardinality_min is None:
+            cardinality_min = 2
+        if cardinality_max is None:
+            cardinality_max = 3
+        assert cardinality_max >= cardinality_min >= 2
+        for vertex in self.vs:
+            n_levels = np.random.randint(cardinality_min, cardinality_max + 1)
+            vertex['levels'] = list(map(str, range(n_levels)))
+
+    def generate_discrete_parameters(
+        self,
+        alpha: Optional[float] = None,
+        cardinality_min: Optional[int] = None,
+        cardinality_max: Optional[int] = None,
+        seed: Optional[int] = None,
+    ) -> None:
+        """Populate discrete conditional parameter tables for each node."""
+        try:
+            self.vs['levels']
+        except KeyError:
+            self.generate_levels(cardinality_min, cardinality_max, seed)
+        for vertex in self.vs:
+            vertex['CPD'] = ConditionalProbabilityTable(vertex)
+            vertex['CPD'].sample_parameters(alpha=alpha, seed=seed)
 
     def sample(self, n_samples: int, seed: Optional[int] = None) -> np.ndarray:
         """Sample n_samples rows of data from the graph."""
@@ -233,34 +281,22 @@ class DAG(igraph.Graph):
             data[:, node_idx] = self.vs[node_idx]['CPD'].sample(data)
         return data
 
-    def to_bif(self, filepath: Optional[Path] = None) -> str:
-        """Represent DAG as a BIF file, optionally saving to file."""
-        network_template = Template("network $name {\n}\n")
-        continuous_variable_template = Template(
-            """variable $name {\n  type continuous;\n  $properties}\n"""
-        )
-        continuous_probability_template = Template(
-            """probability ( $node | $parents ) {\n  table $values ;\n  }\n"""
-        )
-        bif_string = network_template.safe_substitute(name=self.name)
+    def save(self, yaml_path: Optional[Path] = None) -> Optional[str]:
+        """Save DAG as yaml file, or string if no path is specified."""
+        if yaml_path is None:
+            return safe_dump(self.__dict__)
+        with yaml_path.open('w') as stream:
+            return safe_dump(self.__dict__, stream=stream)
 
-        for vertex in self.vs:
-            bif_string += continuous_variable_template.safe_substitute(
-                name=vertex['name'], properties=""
-            )
-
-        for vertex in self.vs:
-            if vertex['CPD'] is not None and vertex['CPD'].array.size > 0:
-                bif_string += continuous_probability_template.safe_substitute(
-                    node=vertex['name'],
-                    parents=', '.join(vertex['CPD'].parent_names),
-                    values=', '.join(list(vertex['CPD'].array.astype(str))),
-                )
-        if filepath is not None:
-            if filepath.is_dir():
-                filepath = filepath / 'graph.bif'
-            filepath.resolve()
-            assert filepath.suffix == '.bif'
-            filepath.write_text(bif_string)
-
-        return bif_string
+    @classmethod
+    def load(cls, yaml: Union[Path, str]) -> DAG:
+        """Load DAG from yaml file or string."""
+        if isinstance(yaml, Path):
+            with yaml.open('r') as stream:
+                yaml_str = stream.read()
+        else:
+            yaml_str = yaml
+        state = safe_load(yaml_str)
+        dag = cls()
+        dag.__setstate__(state)
+        return dag

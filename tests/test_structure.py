@@ -6,9 +6,10 @@ import pytest
 import networkx as nx
 import numpy as np
 from igraph import VertexSeq
+import yaml
 
 from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
-from .utils import TEST_MODELSTRING, REVERSED_MODELSTRING, test_dag, partial_dag
+from .utils import TEST_MODELSTRING, REVERSED_MODELSTRING, test_dag, partial_dag, temp_out
 
 
 def test_nodes_sorted():
@@ -107,7 +108,7 @@ def test_DAG_get_numpy_adjacency():
 
 def test_DAG_get_modelstring():
     assert test_dag().get_modelstring() == TEST_MODELSTRING
-    assert test_dag(reversed=True).get_modelstring() == REVERSED_MODELSTRING
+    assert test_dag(reverse=True).get_modelstring() == REVERSED_MODELSTRING
 
 
 def test_DAG_get_ancestors():
@@ -158,7 +159,6 @@ def test_DAG_are_neighbours():
 
 def test_DAG_get_v_structures():
     dag = test_dag()
-    part_dag = partial_dag()
     reversed_dag = test_dag(True)
     assert partial_dag().get_v_structures() == {("C", "B", "D")}
     assert dag.get_v_structures() == set()
@@ -168,101 +168,83 @@ def test_DAG_get_v_structures():
 
 def test_DAG_pickling():
     dag = test_dag()
-    state = dag.__dict__
-    dag_from_state = DAG()
-    dag_from_state.__setstate__(state)
     p = pickle.dumps(dag)
     unpickled_dag = pickle.loads(p)
 
-    assert dag.nodes == dag_from_state.nodes
-    assert dag.edges == dag_from_state.edges == dag_from_state.directed_edges
     assert dag.nodes == unpickled_dag.nodes
     assert dag.edges == unpickled_dag.edges == unpickled_dag.directed_edges
 
 
+def test_DAG_yaml_continuous_file(temp_out):
+    dag_path = temp_out / 'cont.yml'
+    dag = test_dag()
+    dag.generate_continuous_parameters()
+    dag.save(dag_path)
+    dag2 = DAG.load(dag_path)
+    assert dag.nodes == dag2.nodes
+    assert dag.edges == dag2.edges
+    assert dag.__dict__['vs'] == dag2.__dict__['vs']
+
+
+def test_DAG_yaml_continuous_str():
+    dag = test_dag()
+    dag.generate_continuous_parameters()
+    dag_string = dag.save()
+    dag2 = DAG.load(dag_string)
+    assert dag.nodes == dag2.nodes
+    assert dag.edges == dag2.edges
+    assert dag.__dict__['vs'] == dag2.__dict__['vs']
+
+
+def test_DAG_yaml_discrete_file(temp_out):
+    dag_path = temp_out / 'cont.yml'
+    dag = test_dag()
+    dag.generate_discrete_parameters(seed=0)
+    dag.save(dag_path)
+    dag2 = DAG.load(dag_path)
+    assert dag.nodes == dag2.nodes
+    assert dag.edges == dag2.edges
+    assert dag.__dict__['vs'] == dag2.__dict__['vs']
+
+
+def test_DAG_yaml_discrete_str():
+    dag = test_dag()
+    dag.generate_discrete_parameters(seed=0)
+    dag_string = dag.save()
+    dag2 = DAG.load(dag_string)
+    assert dag.nodes == dag2.nodes
+    assert dag.edges == dag2.edges
+    assert dag.__dict__['vs'] == dag2.__dict__['vs']
+
+
 def test_DAG_generate_parameters():
     dag = test_dag()
-    dag.generate_parameters(data_type='cont', possible_weights=[1], noise_scale=0.0)
+    dag.generate_continuous_parameters(possible_weights=[1], std=0.0)
     for v in dag.vs:
         assert np.allclose(v['CPD'].array, 1)
 
-    with pytest.raises(NotImplementedError):
-        dag.generate_parameters(data_type='disc')
+    for levels in [["0", "1"], ["0", "1", "2"]]:
+        dag.vs['levels'] = [levels for v in dag.vs]
+        dag.generate_discrete_parameters()
+        assert dag.vs[0]['CPD'].array.shape == (len(levels),)
+        assert dag.vs[1]['CPD'].array.shape == (len(levels), len(levels), len(levels))
+        assert dag.vs[2]['CPD'].array.shape == (len(levels), len(levels))
+        assert dag.vs[3]['CPD'].array.shape == (len(levels),)
 
 
-def test_DAG_sample():
+def test_DAG_sample_continuous():
     dag = test_dag()
-    dag.generate_parameters(data_type='cont', noise_scale=0.0)
+    dag.generate_continuous_parameters(std=0.0)
     assert np.allclose(dag.sample(10), 0)
 
-    dag.generate_parameters(data_type='cont', noise_scale=1.0)
+    dag.generate_continuous_parameters(std=1.0)
     assert not np.allclose(dag.sample(10, seed=1), 0)
 
 
-def test_DAG_to_bif():
+def test_DAG_sample_discrete():
     dag = test_dag()
-    assert (
-        dag.to_bif()
-        == """network unnamed {
-}
-variable A {
-  type continuous;
-  }
-variable B {
-  type continuous;
-  }
-variable C {
-  type continuous;
-  }
-variable D {
-  type continuous;
-  }
-"""
-    )
-
-    dag = test_dag()
-    dag.generate_parameters(data_type='cont', possible_weights=[2], noise_scale=0.0, seed=1)
-    dag.name = 'test_dag'
-    assert (
-        dag.to_bif()
-        == """network test_dag {
-}
-variable A {
-  type continuous;
-  }
-variable B {
-  type continuous;
-  }
-variable C {
-  type continuous;
-  }
-variable D {
-  type continuous;
-  }
-probability ( B | C, D ) {
-  table 2, 2 ;
-  }
-probability ( C | D ) {
-  table 2 ;
-  }
-"""
-    )
-
-    test_path = Path(__file__).parent.resolve()
-    dag.to_bif(filepath=test_path)
-    filepath = test_path / 'graph.bif'
-    assert filepath.read_text() == dag.to_bif()
-    filepath.unlink()
-
-    with pytest.raises(NotImplementedError):
-        dag = test_dag()
-        dag.generate_parameters(data_type='discrete')
-        assert (
-            dag.to_bif()
-            == """
-    
-        """
-        )
+    dag.generate_discrete_parameters()
+    assert not np.allclose(dag.sample(10, seed=1), 0)
 
 
 def test_Graph():
