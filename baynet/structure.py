@@ -2,7 +2,6 @@
 from __future__ import annotations
 from itertools import combinations
 from typing import List, Union, Tuple, Set, Any, Dict, Optional
-from string import Template
 from pathlib import Path
 
 import igraph
@@ -55,8 +54,19 @@ class DAG(igraph.Graph):
     def __dict__(self) -> Dict:
         """Return dict of attributes needed for pickling."""
         if self.vs['CPD'] == [None for _ in self.vs]:
-            return {'name': self.name, 'vs': [{'name': v['name']} for v in self.vs], 'edges': list(self.edges)}
-        return {'name': self.name, 'vs': [{'name': v['name'], 'CPD': v['CPD'].to_dict(), 'type': type(v['CPD']).__name__} for v in self.vs], 'edges': list(self.edges)}
+            return {
+                'name': self.name,
+                'vs': [{'name': v['name']} for v in self.vs],
+                'edges': list(self.edges),
+            }
+        return {
+            'name': self.name,
+            'vs': [
+                {'name': v['name'], 'CPD': v['CPD'].to_dict(), 'type': type(v['CPD']).__name__}
+                for v in self.vs
+            ],
+            'edges': list(self.edges),
+        }
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
         """Set new instance's state from a dict."""
@@ -66,13 +76,11 @@ class DAG(igraph.Graph):
                 self.add_vertex(name=vertex['name'], CPD=cpd)
             else:
                 self.add_vertex(name=vertex['name'])
-        edges = list(map(tuple, state.get('edges', [])))
-        self.add_edges(edges)
+        self.add_edges([(node_from, node_to) for node_from, node_to in state.get('edges', [])])
         self.name = state['name']
-        
 
     @classmethod
-    def from_modelstring(cls, modelstring: str, **kwargs: Dict[str, Any]) -> DAG:
+    def from_modelstring(cls, modelstring: str, **kwargs: Dict[str, Any]) -> 'DAG':
         """Instantiate a Graph object from a modelstring."""
         dag = cls(**kwargs)
         dag.add_vertices(_nodes_from_modelstring(modelstring))
@@ -80,7 +88,9 @@ class DAG(igraph.Graph):
         return dag
 
     @classmethod
-    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str], **kwargs: Dict[str, Any]) -> DAG:
+    def from_amat(
+        cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str], **kwargs: Dict[str, Any]
+    ) -> 'DAG':
         """Instantiate a Graph object from an adjacency matrix."""
         if isinstance(amat, np.ndarray):
             amat = amat.tolist()
@@ -95,7 +105,7 @@ class DAG(igraph.Graph):
         return dag
 
     @classmethod
-    def from_other(cls, other_graph: Any, **kwargs: Dict[str, Any]) -> DAG:
+    def from_other(cls, other_graph: Any, **kwargs: Dict[str, Any]) -> 'DAG':
         """Attempt to create a Graph from an existing graph object (nx.DiGraph etc.)."""
         graph = cls(**kwargs)
         graph.add_vertices(_nodes_sorted(other_graph.nodes))
@@ -231,8 +241,9 @@ class DAG(igraph.Graph):
         self,
         cardinality_min: Optional[int] = None,
         cardinality_max: Optional[int] = None,
-        seed: Optional[int] = None
+        seed: Optional[int] = None,
     ) -> None:
+        """Set number of levels in each node, for generating discrete data."""
         if seed is not None:
             np.random.seed(seed)
         if cardinality_min is None:
@@ -241,9 +252,8 @@ class DAG(igraph.Graph):
             cardinality_max = 3
         assert cardinality_max >= cardinality_min >= 2
         for vertex in self.vs:
-            n_levels = np.random.randint(cardinality_min, cardinality_max+1)
+            n_levels = np.random.randint(cardinality_min, cardinality_max + 1)
             vertex['levels'] = list(map(str, range(n_levels)))
-        return
 
     def generate_discrete_parameters(
         self,
@@ -276,10 +286,10 @@ class DAG(igraph.Graph):
         if yaml_path is None:
             return safe_dump(self.__dict__)
         with yaml_path.open('w') as stream:
-            safe_dump(self.__dict__, stream=stream)
+            return safe_dump(self.__dict__, stream=stream)
 
     @classmethod
-    def load(cls, yaml: Union[Path, str]):
+    def load(cls, yaml: Union[Path, str]) -> DAG:
         """Load DAG from yaml file or string."""
         if isinstance(yaml, Path):
             with yaml.open('r') as stream:
@@ -290,5 +300,3 @@ class DAG(igraph.Graph):
         dag = cls()
         dag.__setstate__(state)
         return dag
-
-

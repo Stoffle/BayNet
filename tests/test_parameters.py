@@ -43,7 +43,9 @@ def test_CPT_rescale():
             # Check last value in each CPT 'row' is 1 (double checking cumsum with random init)
             assert np.isclose(np.sum(cpt.cumsum_array[i, j, -1]), 1)
             # and each value is larger than the previous
-            assert cpt.cumsum_array[i, j, 0] <= cpt.cumsum_array[i, j, 1] <= cpt.cumsum_array[i, j, 2]
+            assert (
+                cpt.cumsum_array[i, j, 0] <= cpt.cumsum_array[i, j, 1] <= cpt.cumsum_array[i, j, 2]
+            )
 
 
 def test_CPT_sample_exceptions():
@@ -81,12 +83,13 @@ def test_sample_cpt():
 
     expected_output = np.array([0, 1, 0, 0, 1, 1, 0, 1])
 
-    assert np.all(_sample_cpt(cpt.cumsum_array, parent_values_tuples, random_vector) == expected_output)
+    assert np.all(
+        _sample_cpt(cpt.cumsum_array, parent_values_tuples, random_vector) == expected_output
+    )
     np.random.seed(0)  # TODO: replace with mocking np.random.normal
     data = np.zeros((8, 4), dtype=int)
     data[:, cpt.parents] = parent_values
     assert np.all(cpt.sample(data) == [1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0])
-
 
 
 def test_cpd_init():
