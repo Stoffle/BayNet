@@ -9,7 +9,7 @@ from igraph import VertexSeq
 import yaml
 
 from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
-from .utils import TEST_MODELSTRING, REVERSED_MODELSTRING, test_dag, partial_dag, temp_out
+from .utils import TEST_MODELSTRING, REVERSED_MODELSTRING, test_dag, partial_dag
 
 
 def test_nodes_sorted():
