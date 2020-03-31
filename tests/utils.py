@@ -18,4 +18,3 @@ def partial_dag() -> DAG:
 
 def empty_dag() -> DAG:
     return DAG.from_amat(np.zeros((4, 4)), list("ABCD"), name='empty_dag')
-
