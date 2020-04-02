@@ -9,6 +9,7 @@ from igraph import VertexSeq
 import yaml
 
 from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
+from baynet.parameters import ConditionalProbabilityDistribution
 from .utils import TEST_MODELSTRING, REVERSED_MODELSTRING, test_dag, partial_dag
 
 
@@ -64,6 +65,17 @@ def test_DAG_from_other():
     graph = DAG.from_other(test_graph)
     assert graph.edges == graph.directed_edges == set(edges)
     assert graph.nodes == set(list("ABCD"))
+
+
+def test_DAG_dtype():
+    dag = test_dag()
+    assert dag.dtype == None
+    dag.generate_continuous_parameters()
+    assert dag.dtype == "continuous"
+    dag.generate_discrete_parameters()
+    assert dag.dtype == "discrete"
+    dag.vs[0]['CPD'] = ConditionalProbabilityDistribution(dag.vs[0])
+    assert dag.dtype == "mixed"
 
 
 def test_DAG_edge_properties():

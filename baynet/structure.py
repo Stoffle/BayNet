@@ -114,6 +114,18 @@ class DAG(igraph.Graph):
         return graph
 
     @property
+    def dtype(self) -> Optional[str]:
+        """Return data type of parameterised network."""
+        if all(type(vertex['CPD']) is ConditionalProbabilityTable for vertex in self.vs):
+            return "discrete"
+        elif all(type(vertex['CPD']) is ConditionalProbabilityDistribution for vertex in self.vs):
+            return "continuous"
+        elif all(type(vertex['CPD']) in [ConditionalProbabilityTable, ConditionalProbabilityDistribution] for vertex in self.vs):
+            return "mixed"
+        else:
+            return None
+
+    @property
     def nodes(self) -> Set[str]:
         """Return a set of the names of all nodes in the network."""
         return {v['name'] for v in self.vs}
