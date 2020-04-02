@@ -8,11 +8,10 @@ from baynet.parameters import (
     _sample_cpt,
     ConditionalProbabilityDistribution,
 )
-from .utils import test_dag
 
 
-def test_CPT_init():
-    dag = test_dag()
+def test_CPT_init(test_dag):
+    dag = test_dag
     dag.vs['levels'] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
     assert cpt.array.shape == (2, 2, 2)
@@ -27,8 +26,8 @@ def test_CPT_init():
         ConditionalProbabilityTable(dag.vs[dag.get_node_index("A")])
 
 
-def test_CPT_rescale():
-    dag = test_dag()
+def test_CPT_rescale(test_dag):
+    dag = test_dag
     for n_levels in [1, 2, 3, 4]:
         dag.vs['levels'] = [list(map(str, range(n_levels))) for v in dag.vs]
         cpt = ConditionalProbabilityTable(dag.vs[1])
@@ -48,8 +47,8 @@ def test_CPT_rescale():
             )
 
 
-def test_CPT_sample_exceptions():
-    dag = test_dag()
+def test_CPT_sample_exceptions(test_dag):
+    dag = test_dag
     dag.vs['levels'] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
     with pytest.raises(ValueError):
@@ -58,8 +57,8 @@ def test_CPT_sample_exceptions():
     cpt.sample(np.zeros((10, 0))[[]])
 
 
-def test_CPT_sample_parameters():
-    dag = test_dag()
+def test_CPT_sample_parameters(test_dag):
+    dag = test_dag
     dag.vs['levels'] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
     cpt_shape = cpt.array.shape
@@ -67,8 +66,8 @@ def test_CPT_sample_parameters():
     assert cpt.array.shape == cpt_shape
 
 
-def test_sample_cpt():
-    dag = test_dag()
+def test_sample_cpt(test_dag):
+    dag = test_dag
     dag.vs['levels'] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
     cpt.array[0, 0, :] = [0.5, 0.5]
@@ -92,22 +91,22 @@ def test_sample_cpt():
     assert np.all(cpt.sample(data) == [1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0])
 
 
-def test_cpd_init():
-    dag = test_dag()
+def test_cpd_init(test_dag):
+    dag = test_dag
     cpd = ConditionalProbabilityDistribution(dag.vs[1])
     assert cpd.array.shape == (2,)
     assert np.allclose(cpd.array, 0)
 
 
-def test_cpd_sample_params():
-    dag = test_dag()
+def test_cpd_sample_params(test_dag):
+    dag = test_dag
     cpd = ConditionalProbabilityDistribution(dag.vs[1])
     cpd.sample_parameters(weights=[1], seed=0)
     assert np.allclose(cpd.array, 1)
 
 
-def test_cpd_sample():
-    dag = test_dag()
+def test_cpd_sample(test_dag):
+    dag = test_dag
     cpd = ConditionalProbabilityDistribution(dag.vs[1], std=0)
     cpd.sample_parameters(weights=[1])
     assert np.allclose(cpd.sample(np.ones((10, 4))), 2)
