@@ -46,22 +46,16 @@ class DAG(igraph.Graph):
         """Create a graph object."""
         # Grab *args and **kwargs because pickle/igraph do weird things here
         super().__init__(directed=True, vertex_attrs={'CPD': None})
-        if 'name' in kwargs.keys():
-            self.name = kwargs['name']
-        else:
-            self.name = "unnamed"
 
     @property
     def __dict__(self) -> Dict:
         """Return dict of attributes needed for pickling."""
         if self.vs['CPD'] == [None for _ in self.vs]:
             return {
-                'name': self.name,
                 'vs': [{'name': v['name']} for v in self.vs],
                 'edges': list(self.edges),
             }
         return {
-            'name': self.name,
             'vs': [
                 {'name': v['name'], 'CPD': v['CPD'].to_dict(), 'type': type(v['CPD']).__name__}
                 for v in self.vs
@@ -78,7 +72,6 @@ class DAG(igraph.Graph):
             else:
                 self.add_vertex(name=vertex['name'])
         self.add_edges([(node_from, node_to) for node_from, node_to in state.get('edges', [])])
-        self.name = state['name']
 
     @classmethod
     def from_modelstring(cls, modelstring: str, **kwargs: Dict[str, Any]) -> 'DAG':
