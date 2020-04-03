@@ -26,9 +26,15 @@ def test_false_positive_edges(test_dag, reversed_dag):
 
 
 def test_true_positive_edges(test_dag, reversed_dag):
-    assert metrics.true_positive_edges(test_dag, test_dag, True) == test_dag.edges | test_dag.reversed_edges
+    assert (
+        metrics.true_positive_edges(test_dag, test_dag, True)
+        == test_dag.edges | test_dag.reversed_edges
+    )
     assert metrics.true_positive_edges(test_dag, test_dag, False) == test_dag.edges
-    assert metrics.true_positive_edges(test_dag, reversed_dag, True) == test_dag.edges | test_dag.reversed_edges
+    assert (
+        metrics.true_positive_edges(test_dag, reversed_dag, True)
+        == test_dag.edges | test_dag.reversed_edges
+    )
     assert metrics.true_positive_edges(test_dag, reversed_dag, False) == set()
 
 

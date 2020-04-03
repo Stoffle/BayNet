@@ -116,14 +116,18 @@ class DAG(igraph.Graph):
     @property
     def dtype(self) -> Optional[str]:
         """Return data type of parameterised network."""
-        if all(type(vertex['CPD']) is ConditionalProbabilityTable for vertex in self.vs):
+        if all(isinstance(vertex['CPD'], ConditionalProbabilityTable) for vertex in self.vs):
             return "discrete"
-        elif all(type(vertex['CPD']) is ConditionalProbabilityDistribution for vertex in self.vs):
+        elif all(
+            isinstance(vertex['CPD'], ConditionalProbabilityDistribution) for vertex in self.vs
+        ):
             return "continuous"
-        elif all(type(vertex['CPD']) in [ConditionalProbabilityTable, ConditionalProbabilityDistribution] for vertex in self.vs):
+        elif all(
+            type(vertex['CPD']) in [ConditionalProbabilityTable, ConditionalProbabilityDistribution]
+            for vertex in self.vs
+        ):
             return "mixed"
-        else:
-            return None
+        return None
 
     @property
     def nodes(self) -> Set[str]:
@@ -309,7 +313,7 @@ class DAG(igraph.Graph):
             return safe_dump(self.__dict__, stream=stream)
 
     @classmethod
-    def load(cls, yaml: Union[Path, str]) -> DAG:
+    def load(cls, yaml: Union[Path, str]) -> 'DAG':
         """Load DAG from yaml file or string."""
         if isinstance(yaml, Path):
             with yaml.open('r') as stream:
@@ -320,3 +324,12 @@ class DAG(igraph.Graph):
         dag = cls()
         dag.__setstate__(state)
         return dag
+
+    def mutilate(self, node: int, evidence_level: int) -> 'DAG':
+        """Return a copy with specified node's value fixed at evidence_level, and parents killed off."""
+        mutilated_dag = self.copy()
+        parents = mutilated_dag.get_ancestors(node, only_parents=True)
+        nodes_requiring_marginalisation = []
+        for parent in parents:
+            nodes_requiring_marginalisation += 
+        mutilated_dag.remove_edges()
