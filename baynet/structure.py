@@ -1,7 +1,7 @@
 """Graph object."""
 from __future__ import annotations
 from itertools import combinations
-from typing import List, Union, Tuple, Set, Any, Dict, Optional
+from typing import List, Union, Tuple, Set, Any, Dict, Optional, Type
 from pathlib import Path
 from copy import deepcopy
 
@@ -154,7 +154,7 @@ class DAG(igraph.Graph):
         """Convert node index to node name."""
         return self.vs[node]['name']
 
-    def get_node_index(self, node: Union[str, igraph.Vertex]) -> int:
+    def get_node_index(self, node: str) -> int:
         """Convert node name to node index."""
         return self.vs['name'].index(node)
 
@@ -310,6 +310,7 @@ class DAG(igraph.Graph):
         if seed is not None:
             np.random.seed(seed)
         sorted_nodes = self.topological_sorting(mode="out")
+        dtype: Type
         if all(isinstance(vertex['CPD'], ConditionalProbabilityTable) for vertex in self.vs):
             dtype = int
         elif all(
@@ -359,7 +360,7 @@ class DAG(igraph.Graph):
             self.remove_node(node)
 
     def mutilate(self, node: str, evidence_level: str) -> 'DAG':
-        """Return a copy with specified node's value fixed at evidence_level, and parents killed off."""
+        """Return a copy with node's value fixed at evidence_level, and parents killed off."""
         assert node in self.nodes
         mutilated_dag = deepcopy(self)
         parents = sorted(
