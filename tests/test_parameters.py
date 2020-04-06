@@ -1,6 +1,7 @@
 from time import time
 from unittest.mock import patch
 import numpy as np
+import pandas as pd
 import pytest
 from baynet.structure import DAG
 from baynet.parameters import (
@@ -53,8 +54,6 @@ def test_CPT_sample_exceptions(test_dag):
     cpt = ConditionalProbabilityTable(dag.vs[1])
     with pytest.raises(ValueError):
         cpt.sample(None)
-    cpt.rescale_probabilities()
-    cpt.sample(np.zeros((10, 0))[[]])
 
 
 def test_CPT_sample_parameters(test_dag):
@@ -64,6 +63,17 @@ def test_CPT_sample_parameters(test_dag):
     cpt_shape = cpt.array.shape
     cpt.sample_parameters(seed=0)
     assert cpt.array.shape == cpt_shape
+
+
+def test_CPT_marginalise(test_dag):
+    dag = test_dag
+    dag.generate_discrete_parameters(min_levels=2, max_levels=2, seed=1)
+    cpt = dag.vs[1]['CPD']
+    cpt.marginalise('C')
+    assert cpt.parents == ['D']
+    assert cpt.array.shape == (2, 2)
+    assert cpt.parent_levels == [['0', '1']]
+    assert cpt.n_parent_levels == [2]
 
 
 def test_sample_cpt(test_dag):
@@ -86,9 +96,9 @@ def test_sample_cpt(test_dag):
         _sample_cpt(cpt.cumsum_array, parent_values_tuples, random_vector) == expected_output
     )
     np.random.seed(0)  # TODO: replace with mocking np.random.normal
-    data = np.zeros((8, 4), dtype=int)
-    data[:, cpt.parents] = parent_values
-    assert np.all(cpt.sample(data) == [1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0])
+    data = pd.DataFrame(np.zeros((8, 4), dtype=int), columns=list("ABCD"))
+    data.iloc[:, [2, 3]] = parent_values
+    assert np.all(cpt.sample(data).astype(int) == [1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0])
 
 
 def test_cpd_init(test_dag):
@@ -109,12 +119,12 @@ def test_cpd_sample(test_dag):
     dag = test_dag
     cpd = ConditionalProbabilityDistribution(dag.vs[1], std=0)
     cpd.sample_parameters(weights=[1])
-    assert np.allclose(cpd.sample(np.ones((10, 4))), 2)
+    assert np.allclose(cpd.sample(pd.DataFrame(np.ones((10, 4)), columns=list("ABCD"))), 2)
     with pytest.raises(TypeError):
         cpd.sample()
-    with pytest.raises(IndexError):
-        cpd.sample(np.ones((10, 1)))
 
     cpd_no_parents = ConditionalProbabilityDistribution(dag.vs[0], std=0)
     cpd_no_parents.sample_parameters(weights=[1])
-    assert np.allclose(cpd_no_parents.sample(np.ones((10, 4))), 0)
+    assert np.allclose(
+        cpd_no_parents.sample(pd.DataFrame(np.ones((10, 4)), columns=list("ABCD"))), 0
+    )

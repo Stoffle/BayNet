@@ -149,6 +149,34 @@ def test_DAG_get_ancestors(test_dag):
     )
 
 
+def test_DAG_get_descendants(reversed_dag):
+    dag = reversed_dag
+    assert (
+        dag.get_descendants("A")['name']
+        == dag.get_descendants(dag.vs[0])['name']
+        == dag.get_descendants(0)['name']
+        == []
+    )
+    assert (
+        dag.get_descendants("B")['name']
+        == dag.get_descendants(dag.vs[1])['name']
+        == dag.get_descendants(1)['name']
+        == ['C', 'D']
+    )
+    assert (
+        dag.get_descendants("C")['name']
+        == dag.get_descendants(dag.vs[2])['name']
+        == dag.get_descendants(2)['name']
+        == ['D']
+    )
+    assert (
+        dag.get_descendants("D")['name']
+        == dag.get_descendants(dag.vs[3])['name']
+        == dag.get_descendants(3)['name']
+        == []
+    )
+
+
 def test_DAG_get_node_name_or_index(test_dag):
     dag = test_dag
     for name, index in zip("ABCD", range(4)):
@@ -245,16 +273,37 @@ def test_DAG_generate_parameters(test_dag):
 def test_DAG_sample_continuous(test_dag):
     dag = test_dag
     dag.generate_continuous_parameters(std=0.0)
-    assert np.allclose(dag.sample(10), 0)
+    assert np.allclose(dag.sample(10).values.astype(int), 0)
 
     dag.generate_continuous_parameters(std=1.0)
-    assert not np.allclose(dag.sample(10, seed=1), 0)
+    assert not np.allclose(dag.sample(10, seed=1).values.astype(int), 0)
 
 
 def test_DAG_sample_discrete(test_dag):
     dag = test_dag
     dag.generate_discrete_parameters()
-    assert not np.allclose(dag.sample(10, seed=1), 0)
+    assert not np.allclose(dag.sample(10, seed=1).values.astype(int), 0)
+
+
+def test_DAG_remove_nodes(test_dag):
+    dag = test_dag
+    dag.generate_discrete_parameters()
+    dag.remove_nodes(['C'])
+    assert dag.get_node('B')['CPD'].parents == ['D']
+
+
+def test_DAG_mutilate(test_dag):
+    dag = test_dag
+    dag.generate_discrete_parameters(max_levels=2)
+    dag = dag.mutilate("C", "1")
+    c_cpt = dag.get_node('C')['CPD']
+    assert c_cpt.parents == []
+    assert np.all(c_cpt.array == [0, 1])
+    assert all(dag.sample(100)['C'] == '1')
+    assert dag.get_node('B')['CPD'].parents == ["C"]
+    assert dag.get_node('B')['CPD'].array.shape == (2, 2)
+    with pytest.raises(KeyError):
+        dag.get_node('D')
 
 
 def test_Graph():

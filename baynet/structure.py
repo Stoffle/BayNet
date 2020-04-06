@@ -3,6 +3,7 @@ from __future__ import annotations
 from itertools import combinations
 from typing import List, Union, Tuple, Set, Any, Dict, Optional
 from pathlib import Path
+from copy import deepcopy
 
 import igraph
 import numpy as np
@@ -153,9 +154,16 @@ class DAG(igraph.Graph):
         """Convert node index to node name."""
         return self.vs[node]['name']
 
-    def get_node_index(self, node: str) -> int:
+    def get_node_index(self, node: Union[str, igraph.Vertex]) -> int:
         """Convert node name to node index."""
         return self.vs['name'].index(node)
+
+    def get_node(self, name: str) -> igraph.Vertex:
+        """Get Vertex object by node name."""
+        try:
+            return self.vs[self.get_node_index(name)]
+        except ValueError:
+            raise KeyError(f"Node `{name}` does not appear in DAG.")
 
     def add_edge(self, source: str, target: str) -> None:
         """
@@ -213,6 +221,22 @@ class DAG(igraph.Graph):
             return igraph.VertexSeq(self, ancestors)
         return self.vs[sorted(ancestors)]
 
+    def get_descendants(
+        self, node: Union[str, int, igraph.Vertex], only_children: bool = False
+    ) -> igraph.VertexSeq:
+        """Return an igraph.VertexSeq of descendants for given node (string or node index)."""
+        if isinstance(node, str):
+            # Convert name to index
+            node = self.get_node_index(node)
+        elif isinstance(node, igraph.Vertex):
+            node = node.index
+        order = 1 if only_children else len(self.vs)
+        ancestors = list(self.neighborhood(vertices=node, order=order, mode="OUT"))
+        ancestors.remove(node)
+        if len(ancestors) <= 1:
+            return igraph.VertexSeq(self, ancestors)
+        return self.vs[sorted(ancestors)]
+
     def are_neighbours(self, node_a: igraph.Vertex, node_b: igraph.Vertex) -> bool:
         """Check if two nodes are neighbours in the Graph."""
         return node_a.index in self.neighborhood(vertices=node_b)
@@ -249,34 +273,34 @@ class DAG(igraph.Graph):
 
     def generate_levels(
         self,
-        cardinality_min: Optional[int] = None,
-        cardinality_max: Optional[int] = None,
+        min_levels: Optional[int] = None,
+        max_levels: Optional[int] = None,
         seed: Optional[int] = None,
     ) -> None:
         """Set number of levels in each node, for generating discrete data."""
         if seed is not None:
             np.random.seed(seed)
-        if cardinality_min is None:
-            cardinality_min = 2
-        if cardinality_max is None:
-            cardinality_max = 3
-        assert cardinality_max >= cardinality_min >= 2
+        if min_levels is None:
+            min_levels = 2
+        if max_levels is None:
+            max_levels = 3
+        assert max_levels >= min_levels >= 2
         for vertex in self.vs:
-            n_levels = np.random.randint(cardinality_min, cardinality_max + 1)
+            n_levels = np.random.randint(min_levels, max_levels + 1)
             vertex['levels'] = list(map(str, range(n_levels)))
 
     def generate_discrete_parameters(
         self,
         alpha: Optional[float] = None,
-        cardinality_min: Optional[int] = None,
-        cardinality_max: Optional[int] = None,
+        min_levels: Optional[int] = None,
+        max_levels: Optional[int] = None,
         seed: Optional[int] = None,
     ) -> None:
         """Populate discrete conditional parameter tables for each node."""
         try:
             self.vs['levels']
         except KeyError:
-            self.generate_levels(cardinality_min, cardinality_max, seed)
+            self.generate_levels(min_levels, max_levels, seed)
         for vertex in self.vs:
             vertex['CPD'] = ConditionalProbabilityTable(vertex)
             vertex['CPD'].sample_parameters(alpha=alpha, seed=seed)
@@ -292,9 +316,11 @@ class DAG(igraph.Graph):
             isinstance(vertex['CPD'], ConditionalProbabilityDistribution) for vertex in self.vs
         ):
             dtype = float
-        data = np.zeros((n_samples, len(self.nodes))).astype(dtype)
+        data = pd.DataFrame(
+            np.zeros((n_samples, len(self.nodes))).astype(dtype), columns=self.vs['name']
+        )
         for node_idx in sorted_nodes:
-            data[:, node_idx] = self.vs[node_idx]['CPD'].sample(data)
+            data.iloc[:, node_idx] = self.vs[node_idx]['CPD'].sample(data)
         data = pd.DataFrame(data, columns=[vertex['name'] for vertex in self.vs])
         return data
 
@@ -318,11 +344,27 @@ class DAG(igraph.Graph):
         dag.__setstate__(state)
         return dag
 
-    def mutilate(self, node: int, evidence_level: int) -> 'DAG':
+    def remove_node(self, node: str) -> None:
+        """Remove a node (inplace), marginalising it out of any children's CPTs."""
+        assert node in self.nodes
+        assert isinstance(self.get_node(node)['CPD'], ConditionalProbabilityTable)
+        for vertex in self.get_descendants(node, only_children=True):
+            assert isinstance(vertex['CPD'], ConditionalProbabilityTable)
+            vertex['CPD'].marginalise(node)
+        self.delete_vertices([node])
+
+    def remove_nodes(self, nodes: Union[List[str], igraph.VertexSeq]) -> None:
+        """Remove multiple nodes (inplace), marginalising it out of any children's CPTs."""
+        for node in nodes:
+            self.remove_node(node)
+
+    def mutilate(self, node: str, evidence_level: str) -> 'DAG':
         """Return a copy with specified node's value fixed at evidence_level, and parents killed off."""
-        mutilated_dag = self.copy()
-        parents = mutilated_dag.get_ancestors(node, only_parents=True)
-        nodes_requiring_marginalisation = []
-        for parent in parents:
-            nodes_requiring_marginalisation += 
-        mutilated_dag.remove_edges()
+        assert node in self.nodes
+        mutilated_dag = deepcopy(self)
+        parents = sorted(
+            [vertex['name'] for vertex in mutilated_dag.get_ancestors(node, only_parents=True)]
+        )
+        mutilated_dag.remove_nodes(parents)
+        mutilated_dag.get_node(node)['CPD'].intervene(evidence_level)
+        return mutilated_dag

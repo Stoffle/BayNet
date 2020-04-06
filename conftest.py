@@ -8,12 +8,12 @@ REVERSED_MODELSTRING = "[A][B][C|B][D|B:C]"
 
 
 @pytest.fixture(scope="function")
-def test_dag(reverse: bool = False) -> DAG:
+def test_dag() -> DAG:
     return DAG.from_modelstring(TEST_MODELSTRING, name='test_dag')
 
 
 @pytest.fixture(scope="function")
-def reversed_dag(reverse: bool = False) -> DAG:
+def reversed_dag() -> DAG:
     return DAG.from_modelstring(REVERSED_MODELSTRING, name='test_dag')
 
 
