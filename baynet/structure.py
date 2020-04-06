@@ -357,15 +357,14 @@ class DAG(igraph.Graph):
     def remove_nodes(self, nodes: Union[List[str], igraph.VertexSeq]) -> None:
         """Remove multiple nodes (inplace), marginalising it out of any children's CPTs."""
         for node in nodes:
+            if isinstance(node, igraph.Vertex):
+                node = node['name']
             self.remove_node(node)
 
     def mutilate(self, node: str, evidence_level: str) -> 'DAG':
         """Return a copy with node's value fixed at evidence_level, and parents killed off."""
         assert node in self.nodes
         mutilated_dag = deepcopy(self)
-        parents = sorted(
-            [vertex['name'] for vertex in mutilated_dag.get_ancestors(node, only_parents=True)]
-        )
-        mutilated_dag.remove_nodes(parents)
+        mutilated_dag.remove_nodes(mutilated_dag.get_ancestors(node, only_parents=True))
         mutilated_dag.get_node(node)['CPD'].intervene(evidence_level)
         return mutilated_dag
