@@ -1,150 +1,113 @@
 import pytest
 from baynet import metrics
-from .utils import test_dag, partial_dag
 
 
-def test_check_args():
-    dag1 = test_dag()
-    dag1.to_undirected()
-    dag2 = test_dag(reverse=True)
-    assert metrics._check_args(dag2, dag2, False)
-    assert metrics._check_args(dag1, dag2, True)
+def test_check_args(test_dag, reversed_dag):
+    test_dag = test_dag
+    test_dag.to_undirected()
+    reversed_dag = reversed_dag
+    assert metrics._check_args(reversed_dag, reversed_dag, False)
+    assert metrics._check_args(test_dag, reversed_dag, True)
     with pytest.raises(ValueError):
-        metrics._check_args(dag1, dag2, False)
+        metrics._check_args(test_dag, reversed_dag, False)
     with pytest.raises(ValueError):
-        metrics._check_args(dag2, dag1, False)
+        metrics._check_args(reversed_dag, test_dag, False)
     with pytest.raises(ValueError):
-        metrics._check_args(None, dag2, True)
+        metrics._check_args(None, reversed_dag, True)
     with pytest.raises(ValueError):
-        metrics._check_args(dag2, None, True)
+        metrics._check_args(reversed_dag, None, True)
 
 
-def test_false_positive_edges():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    assert metrics.false_positive_edges(dag1, dag1, True) == set()
-    assert metrics.false_positive_edges(dag1, dag1, False) == set()
-    assert metrics.false_positive_edges(dag1, dag2, True) == set()
-    assert metrics.false_positive_edges(dag1, dag2, False) == dag2.edges
+def test_false_positive_edges(test_dag, reversed_dag):
+    assert metrics.false_positive_edges(test_dag, test_dag, True) == set()
+    assert metrics.false_positive_edges(test_dag, test_dag, False) == set()
+    assert metrics.false_positive_edges(test_dag, reversed_dag, True) == set()
+    assert metrics.false_positive_edges(test_dag, reversed_dag, False) == reversed_dag.edges
 
 
-def test_true_positive_edges():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    assert metrics.true_positive_edges(dag1, dag1, True) == dag1.edges | dag1.reversed_edges
-    assert metrics.true_positive_edges(dag1, dag1, False) == dag1.edges
-    assert metrics.true_positive_edges(dag1, dag2, True) == dag1.edges | dag1.reversed_edges
-    assert metrics.true_positive_edges(dag1, dag2, False) == set()
+def test_true_positive_edges(test_dag, reversed_dag):
+    assert (
+        metrics.true_positive_edges(test_dag, test_dag, True)
+        == test_dag.edges | test_dag.reversed_edges
+    )
+    assert metrics.true_positive_edges(test_dag, test_dag, False) == test_dag.edges
+    assert (
+        metrics.true_positive_edges(test_dag, reversed_dag, True)
+        == test_dag.edges | test_dag.reversed_edges
+    )
+    assert metrics.true_positive_edges(test_dag, reversed_dag, False) == set()
 
 
-def test_precision():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    dag3 = partial_dag()
-    assert metrics.precision(dag1, dag1, True) == 1.0
-    assert metrics.precision(dag1, dag1, False) == 1.0
-    assert metrics.precision(dag1, dag3, True) == 1.0
-    assert metrics.precision(dag1, dag3, False) == 1.0
-    assert metrics.precision(dag2, dag3, True) == 1.0
-    assert metrics.precision(dag2, dag3, False) == 0.0
+def test_precision(test_dag, reversed_dag, partial_dag):
+    assert metrics.precision(test_dag, test_dag, True) == 1.0
+    assert metrics.precision(test_dag, test_dag, False) == 1.0
+    assert metrics.precision(test_dag, partial_dag, True) == 1.0
+    assert metrics.precision(test_dag, partial_dag, False) == 1.0
+    assert metrics.precision(reversed_dag, partial_dag, True) == 1.0
+    assert metrics.precision(reversed_dag, partial_dag, False) == 0.0
 
 
-def test_recall():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    dag3 = partial_dag()
-    assert metrics.recall(dag1, dag1, True) == 1.0
-    assert metrics.recall(dag1, dag1, False) == 1.0
-    assert metrics.recall(dag1, dag2, True) == 1.0
-    assert metrics.recall(dag1, dag2, False) == 0.0
-    assert metrics.recall(dag1, dag3, True) == 2 / 3
-    assert metrics.recall(dag1, dag3, False) == 2 / 3
+def test_recall(test_dag, reversed_dag, partial_dag):
+    test_dag = test_dag
+    reversed_dag = reversed_dag
+    partial_dag = partial_dag
+    assert metrics.recall(test_dag, test_dag, True) == 1.0
+    assert metrics.recall(test_dag, test_dag, False) == 1.0
+    assert metrics.recall(test_dag, reversed_dag, True) == 1.0
+    assert metrics.recall(test_dag, reversed_dag, False) == 0.0
+    assert metrics.recall(test_dag, partial_dag, True) == 2 / 3
+    assert metrics.recall(test_dag, partial_dag, False) == 2 / 3
 
 
-def test_f1_score():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    dag3 = partial_dag()
-    assert metrics.f1_score(dag1, dag1, True) == 1.0
-    assert metrics.f1_score(dag1, dag2, True) == 1.0
-    assert metrics.f1_score(dag1, dag1, False) == 1.0
-    assert metrics.f1_score(dag1, dag2, False) == 0.0
+def test_f1_score(test_dag, reversed_dag, partial_dag):
+    assert metrics.f1_score(test_dag, test_dag, True) == 1.0
+    assert metrics.f1_score(test_dag, reversed_dag, True) == 1.0
+    assert metrics.f1_score(test_dag, test_dag, False) == 1.0
+    assert metrics.f1_score(test_dag, reversed_dag, False) == 0.0
 
 
-def test_dag_shd():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    dag3 = partial_dag()
-
-    assert metrics.shd(dag1, dag1, False) == 0
-    assert metrics.shd(dag1, dag2, False) == 3
-    assert metrics.shd(dag1, dag3, False) == 1
+def test_dag_shd(test_dag, reversed_dag, partial_dag):
+    assert metrics.shd(test_dag, test_dag, False) == 0
+    assert metrics.shd(test_dag, reversed_dag, False) == 3
+    assert metrics.shd(test_dag, partial_dag, False) == 1
 
 
-def test_skeleton_shd():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    dag3 = partial_dag()
-
-    assert metrics.shd(dag1, dag1, True) == 0
-    assert metrics.shd(dag1, dag2, True) == 0
-    assert metrics.shd(dag1, dag3, True) == 1
+def test_skeleton_shd(test_dag, reversed_dag, partial_dag):
+    assert metrics.shd(test_dag, test_dag, True) == 0
+    assert metrics.shd(test_dag, reversed_dag, True) == 0
+    assert metrics.shd(test_dag, partial_dag, True) == 1
 
 
-def test_false_positive_v_structures():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    dag3 = partial_dag()
-
-    assert metrics.false_positive_v_structures(dag1, dag2) == set()
-    assert metrics.false_positive_v_structures(dag1, dag3) == {("C", "B", "D")}
-    assert metrics.false_positive_v_structures(dag2, dag3) == {("C", "B", "D")}
+def test_false_positive_v_structures(test_dag, reversed_dag, partial_dag):
+    assert metrics.false_positive_v_structures(test_dag, reversed_dag) == set()
+    assert metrics.false_positive_v_structures(test_dag, partial_dag) == {("C", "B", "D")}
+    assert metrics.false_positive_v_structures(reversed_dag, partial_dag) == {("C", "B", "D")}
 
 
-def test_true_positive_v_structures():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    dag3 = partial_dag()
-
-    assert metrics.true_positive_v_structures(dag1, dag2) == set()
-    assert metrics.true_positive_v_structures(dag1, dag3) == set()
-    assert metrics.true_positive_v_structures(dag1, dag1) == set()
-    assert metrics.true_positive_v_structures(dag3, dag3) == {("C", "B", "D")}
+def test_true_positive_v_structures(test_dag, reversed_dag, partial_dag):
+    assert metrics.true_positive_v_structures(test_dag, reversed_dag) == set()
+    assert metrics.true_positive_v_structures(test_dag, partial_dag) == set()
+    assert metrics.true_positive_v_structures(test_dag, test_dag) == set()
+    assert metrics.true_positive_v_structures(partial_dag, partial_dag) == {("C", "B", "D")}
 
 
-def test_false_negative_v_structures():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    dag3 = partial_dag()
-
-    assert metrics.false_negative_v_structures(dag1, dag2) == set()
-    assert metrics.false_negative_v_structures(dag1, dag3) == set()
-    assert metrics.false_negative_v_structures(dag3, dag1) == {("C", "B", "D")}
+def test_false_negative_v_structures(test_dag, reversed_dag, partial_dag):
+    assert metrics.false_negative_v_structures(test_dag, reversed_dag) == set()
+    assert metrics.false_negative_v_structures(test_dag, partial_dag) == set()
+    assert metrics.false_negative_v_structures(partial_dag, test_dag) == {("C", "B", "D")}
 
 
-def test_v_precision():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    dag3 = partial_dag()
-
-    assert metrics.v_precision(dag1, dag2) == 0.0
-    assert metrics.v_precision(dag1, dag3) == 0.0
-    assert metrics.v_precision(dag3, dag3) == 1.0
+def test_v_precision(test_dag, reversed_dag, partial_dag):
+    assert metrics.v_precision(test_dag, reversed_dag) == 0.0
+    assert metrics.v_precision(test_dag, partial_dag) == 0.0
+    assert metrics.v_precision(partial_dag, partial_dag) == 1.0
 
 
-def test_v_recall():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    dag3 = partial_dag()
-
-    assert metrics.v_recall(dag1, dag2) == 0.0
-    assert metrics.v_recall(dag3, dag3) == 1.0
+def test_v_recall(test_dag, reversed_dag, partial_dag):
+    assert metrics.v_recall(test_dag, reversed_dag) == 0.0
+    assert metrics.v_recall(partial_dag, partial_dag) == 1.0
 
 
-def test_v_f1():
-    dag1 = test_dag()
-    dag2 = test_dag(reverse=True)
-    dag3 = partial_dag()
-
-    assert metrics.v_f1(dag1, dag2) == 0.0
-    assert metrics.v_f1(dag3, dag3) == 1.0
+def test_v_f1(test_dag, reversed_dag, partial_dag):
+    assert metrics.v_f1(test_dag, reversed_dag) == 0.0
+    assert metrics.v_f1(partial_dag, partial_dag) == 1.0
