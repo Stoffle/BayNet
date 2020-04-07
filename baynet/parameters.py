@@ -71,7 +71,8 @@ class ConditionalProbabilityTable:
         random_vector = np.random.uniform(size=parent_values_array.shape[0])
         parent_values: List[Tuple[int, ...]] = list(map(tuple, parent_values_array))
         out_array = _sample_cpt(self.cumsum_array, parent_values, random_vector)
-        return pd.Categorical.from_codes(out_array, categories=self.levels)
+        dtype = pd.CategoricalDtype(self.levels, ordered=True)
+        return pd.Categorical.from_codes(codes=out_array, dtype=dtype)
 
     def sample_parameters(self, alpha: Optional[float] = None, seed: Optional[int] = None) -> None:
         """Sample CPT from dirichlet distribution."""
@@ -113,7 +114,7 @@ def _sample_cpt(
     cpt: np.ndarray, parent_values: List[Tuple[int, ...]], random_vector: np.ndarray
 ) -> np.ndarray:
     """Sample given cpt based on rows of parent values and random vector."""
-    out_vector = np.zeros(random_vector.shape)
+    out_vector = np.zeros(random_vector.shape, dtype=int)
     for row_idx in range(random_vector.shape[0]):
         probs = cpt[parent_values[row_idx]]
         out_vector[row_idx] = np.argmax(random_vector[row_idx] < probs)

@@ -96,9 +96,9 @@ def test_sample_cpt(test_dag):
         _sample_cpt(cpt.cumsum_array, parent_values_tuples, random_vector) == expected_output
     )
     np.random.seed(0)  # TODO: replace with mocking np.random.normal
-    data = pd.DataFrame(np.zeros((8, 4), dtype=int), columns=list("ABCD"))
+    data = pd.DataFrame(np.zeros((8, 4)), columns=list("ABCD"), dtype=int)
     data.iloc[:, [2, 3]] = parent_values
-    assert np.all(cpt.sample(data).astype(int) == [1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0])
+    assert np.all(cpt.sample(data).astype(int) == [1, 1, 0, 0, 1, 1, 0, 1])
 
 
 def test_cpd_init(test_dag):
