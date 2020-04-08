@@ -68,8 +68,14 @@ class DAG(igraph.Graph):
             raise ValueError(
                 f"Graph.from_amat() expected `colnames` of type list, but got {type(colnames)}"
             )
-        dag = cls.Adjacency(amat, **kwargs)
-        dag.vs['name'] = colnames
+        dag = cls(**kwargs)
+        dag.add_vertices(colnames)
+        dag.add_edges([
+            (str(colnames[parent_idx]), str(colnames[target_idx]))
+            for parent_idx, row in enumerate(amat)
+            for target_idx, val in enumerate(row)
+            if val
+        ])
         return dag
 
     @classmethod

@@ -203,7 +203,7 @@ def test_DAG_get_v_structures(test_dag, reversed_dag, partial_dag):
 
 
 def test_DAG_yaml_continuous_file(temp_out, test_dag):
-    dag_path = temp_out / 'cont.yml'
+    dag_path = temp_out / 'cont.pb'
     dag = test_dag
     dag.generate_continuous_parameters()
     dag.save(dag_path)
@@ -222,7 +222,7 @@ def test_DAG_yaml_continuous_str(test_dag):
 
 
 def test_DAG_yaml_discrete_file(temp_out, test_dag):
-    dag_path = temp_out / 'cont.yml'
+    dag_path = temp_out / 'cont.pb'
     dag = test_dag
     dag.generate_discrete_parameters(seed=0)
     dag.save(dag_path)
