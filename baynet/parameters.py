@@ -59,7 +59,9 @@ class ConditionalProbabilityTable:
         if seed is not None:
             np.random.seed(seed)
         parent_levels = int(np.prod(np.array(self.array.shape[:-1], dtype=np.int64)))
-        alpha_norm: np.float64 = np.max(np.array([0.01, alpha / (parent_levels * len(self.levels))]))
+        alpha_norm: np.float64 = np.max(
+            np.array([0.01, alpha / (parent_levels * len(self.levels))])
+        )
         self.array = np.random.dirichlet(
             np.array([alpha_norm] * len(self.levels)), parent_levels
         ).reshape(self.array.shape)

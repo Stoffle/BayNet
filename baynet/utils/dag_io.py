@@ -22,6 +22,7 @@ def dag_to_buf(dag: 'baynet.DAG') -> bytes:
         dag_buf.nodes.append(node)
     return dag_buf.SerializeToString()
 
+
 def buf_to_dag(dag_buf: bytes) -> 'baynet.DAG':
     dag_from_buf = DAG_pb2.DAG.FromString(dag_buf)
     dag = baynet.DAG()
@@ -41,6 +42,7 @@ def buf_to_dag(dag_buf: bytes) -> 'baynet.DAG':
         cpd.parents = buf_node.parents
         node['CPD'] = cpd
     return dag
+
 
 def buf_to_array(array_buf: DAG_pb2.Array) -> np.ndarray:
     arr = np.frombuffer(array_buf.flat_array)

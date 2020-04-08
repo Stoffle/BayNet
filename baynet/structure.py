@@ -70,12 +70,14 @@ class DAG(igraph.Graph):
             )
         dag = cls(**kwargs)
         dag.add_vertices(colnames)
-        dag.add_edges([
-            (str(colnames[parent_idx]), str(colnames[target_idx]))
-            for parent_idx, row in enumerate(amat)
-            for target_idx, val in enumerate(row)
-            if val
-        ])
+        dag.add_edges(
+            [
+                (str(colnames[parent_idx]), str(colnames[target_idx]))
+                for parent_idx, row in enumerate(amat)
+                for target_idx, val in enumerate(row)
+                if val
+            ]
+        )
         return dag
 
     @classmethod
@@ -321,7 +323,6 @@ class DAG(igraph.Graph):
         else:
             buf_str = buf
         return dag_io.buf_to_dag(buf_str)
-
 
     def remove_node(self, node: str) -> None:
         """Remove a node (inplace), marginalising it out of any children's CPTs."""
