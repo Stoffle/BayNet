@@ -48,5 +48,5 @@ def buf_to_dag(dag_buf: bytes) -> 'baynet.DAG':
 def buf_to_array(array_buf: DAG_pb2.Array) -> np.ndarray:
     arr = np.frombuffer(array_buf.flat_array)
     if arr.size > 0:
-        arr.reshape(array_buf.shape)
+        arr = arr.reshape(list(array_buf.shape))
     return arr
