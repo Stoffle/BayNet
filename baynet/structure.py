@@ -3,6 +3,7 @@ from __future__ import annotations
 from itertools import combinations
 from typing import List, Union, Tuple, Set, Any, Dict, Optional, Type
 from pathlib import Path
+from copy import deepcopy
 
 import igraph
 import numpy as np
@@ -347,3 +348,10 @@ class DAG(igraph.Graph):
         mutilated_dag.remove_nodes(mutilated_dag.get_ancestors(node, only_parents=True))
         mutilated_dag.get_node(node)['CPD'].intervene(evidence_level)
         return mutilated_dag
+
+    def copy(self) -> 'DAG':
+        """Return a copy."""
+        self_copy = super().copy()
+        for vertex in self_copy.vs:
+            vertex['CPD'] = deepcopy(vertex['CPD'])
+        return self_copy
