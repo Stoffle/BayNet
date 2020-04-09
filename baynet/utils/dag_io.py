@@ -40,7 +40,7 @@ def buf_to_dag(dag_buf: bytes) -> 'baynet.DAG':
         elif buf_node.variable_type == DAG_pb2.NodeType.CONTINUOUS:
             cpd = ConditionalProbabilityDistribution()
             cpd.array = buf_to_array(buf_node.cpd_array)
-        cpd.parents = buf_node.parents
+        cpd.parents = list(buf_node.parents)
         node['CPD'] = cpd
     return dag
 
