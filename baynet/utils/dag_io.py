@@ -2,6 +2,7 @@ from baynet.utils import DAG_pb2
 import baynet
 import igraph
 import numpy as np
+import pyparsing
 from baynet.parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
 
 
@@ -50,3 +51,7 @@ def buf_to_array(array_buf: DAG_pb2.Array) -> np.ndarray:
     if arr.size > 0:
         arr = arr.reshape(list(array_buf.shape))
     return arr
+
+
+def dag_from_bif(bif_str: str):
+    return bif_str

@@ -295,3 +295,12 @@ def test_Graph():
     from baynet import Graph
 
     g = Graph()
+
+
+if __name__ == "__main__":
+    from baynet.utils.dag_io import dag_from_bif
+
+    bif_path = Path(__file__).parent.parent / 'alarm.bif'
+
+    dag = dag_from_bif(bif_path.open().read())
+
