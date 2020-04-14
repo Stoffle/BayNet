@@ -336,9 +336,9 @@ class DAG(igraph.Graph):
 
     def remove_nodes(self, nodes: Union[List[str], igraph.VertexSeq]) -> None:
         """Remove multiple nodes (inplace), marginalising it out of any children's CPTs."""
+        if isinstance(nodes, igraph.VertexSeq):
+            nodes = [node['name'] for node in nodes]
         for node in nodes:
-            if isinstance(node, igraph.Vertex):
-                node = node['name']
             self.remove_node(node)
 
     def mutilate(self, node: str, evidence_level: str) -> 'DAG':
