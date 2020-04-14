@@ -119,4 +119,4 @@ jobs:
         pip install pydocstyle
     - name: Docs formatting check with pdocstyle
       run: |
-        pydocstyle baynet
+        python run_pydocstyle.py

@@ -4,7 +4,6 @@ from pathlib import Path
 import pytest
 import networkx as nx
 import numpy as np
-import yaml
 
 from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
 from baynet.parameters import ConditionalProbabilityDistribution

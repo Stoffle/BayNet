@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 from baynet.utils import dag_io
 
-from . import parameters
 from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
 
 
