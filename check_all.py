@@ -15,7 +15,7 @@ print("")
 
 # pydocstyle
 print("############### pydocstyle #################")
-subprocess.call(["pydocstyle", MODULE_NAME])
+subprocess.call(["pydocstyle", MODULE_NAME, "--match=.*(?<!_pb2)\.py"])
 print("")
 
 # pylint
