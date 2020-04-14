@@ -34,8 +34,8 @@ def test_CPT_rescale(test_dag):
         cpt = ConditionalProbabilityTable(dag.vs[1])
         cpt.rescale_probabilities()
         # Check cumsum is working properly
-        for i in range(cpt.n_levels):
-            assert np.allclose(cpt.cumsum_array[:, :, i], (i + 1) / cpt.n_levels)
+        for i in range(len(cpt.levels)):
+            assert np.allclose(cpt.cumsum_array[:, :, i], (i + 1) / len(cpt.levels))
     cpt.array = np.random.uniform(size=(3, 3, 3))
     cpt.rescale_probabilities()
     for i in range(3):
@@ -52,7 +52,7 @@ def test_CPT_sample_exceptions(test_dag):
     dag = test_dag
     dag.vs['levels'] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         cpt.sample(None)
 
 
@@ -72,8 +72,6 @@ def test_CPT_marginalise(test_dag):
     cpt.marginalise('C')
     assert cpt.parents == ['D']
     assert cpt.array.shape == (2, 2)
-    assert cpt.parent_levels == [['0', '1']]
-    assert cpt.n_parent_levels == [2]
 
 
 def test_sample_cpt(test_dag):

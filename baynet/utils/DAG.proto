@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package baynet;
+
+message DAG {
+  repeated Node nodes = 1;
+}
+
+message Node {
+  string name = 1;
+  NodeType variable_type = 2;
+  repeated string levels = 3; // Only for discrete nodes
+  repeated string parents = 4;
+  Array cpd_array = 5;
+}
+
+message Array {
+  repeated int32 shape = 1;
+  bytes flat_array = 2;
+}
+
+enum NodeType {
+  DISCRETE = 0;
+  CONTINUOUS = 1;
+  MIXED = 2;
+}

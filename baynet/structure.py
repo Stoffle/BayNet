@@ -8,9 +8,8 @@ from copy import deepcopy
 import igraph
 import numpy as np
 import pandas as pd
-from yaml import safe_dump, safe_load
+from baynet.utils import dag_io
 
-from . import parameters
 from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
 
 
@@ -48,32 +47,6 @@ class DAG(igraph.Graph):
         # Grab *args and **kwargs because pickle/igraph do weird things here
         super().__init__(directed=True, vertex_attrs={'CPD': None})
 
-    @property
-    def __dict__(self) -> Dict:
-        """Return dict of attributes needed for pickling."""
-        if self.vs['CPD'] == [None for _ in self.vs]:
-            return {
-                'vs': [{'name': v['name']} for v in self.vs],
-                'edges': list(self.edges),
-            }
-        return {
-            'vs': [
-                {'name': v['name'], 'CPD': v['CPD'].to_dict(), 'type': type(v['CPD']).__name__}
-                for v in self.vs
-            ],
-            'edges': list(self.edges),
-        }
-
-    def __setstate__(self, state: Dict[str, Any]) -> None:
-        """Set new instance's state from a dict."""
-        for vertex in state['vs']:
-            if 'CPD' in vertex.keys():
-                cpd = getattr(parameters, vertex['type']).from_dict(**vertex['CPD'])
-                self.add_vertex(name=vertex['name'], CPD=cpd)
-            else:
-                self.add_vertex(name=vertex['name'])
-        self.add_edges([(node_from, node_to) for node_from, node_to in state.get('edges', [])])
-
     @classmethod
     def from_modelstring(cls, modelstring: str, **kwargs: Dict[str, Any]) -> 'DAG':
         """Instantiate a Graph object from a modelstring."""
@@ -95,8 +68,16 @@ class DAG(igraph.Graph):
             raise ValueError(
                 f"Graph.from_amat() expected `colnames` of type list, but got {type(colnames)}"
             )
-        dag = cls.Adjacency(amat, **kwargs)
-        dag.vs['name'] = colnames
+        dag = cls(**kwargs)
+        dag.add_vertices(colnames)
+        dag.add_edges(
+            [
+                (str(colnames[parent_idx]), str(colnames[target_idx]))
+                for parent_idx, row in enumerate(amat)
+                for target_idx, val in enumerate(row)
+                if val
+            ]
+        )
         return dag
 
     @classmethod
@@ -325,25 +306,23 @@ class DAG(igraph.Graph):
         data = pd.DataFrame(data, columns=[vertex['name'] for vertex in self.vs])
         return data
 
-    def save(self, yaml_path: Optional[Path] = None) -> Optional[str]:
-        """Save DAG as yaml file, or string if no path is specified."""
-        if yaml_path is None:
-            return safe_dump(self.__dict__)
-        with yaml_path.open('w') as stream:
-            return safe_dump(self.__dict__, stream=stream)
+    def save(self, buf_path: Optional[Path] = None) -> Optional[bytes]:
+        """Save DAG as protobuf, or string if no path is specified."""
+        dag_proto = dag_io.dag_to_buf(self)
+        if buf_path is None:
+            return dag_proto
+        with buf_path.open('wb') as stream:
+            stream.write(dag_proto)
 
     @classmethod
-    def load(cls, yaml: Union[Path, str]) -> 'DAG':
+    def load(cls, buf: Union[Path, bytes]) -> 'DAG':
         """Load DAG from yaml file or string."""
-        if isinstance(yaml, Path):
-            with yaml.open('r') as stream:
-                yaml_str = stream.read()
+        if isinstance(buf, Path):
+            with buf.open('rb') as stream:
+                buf_str = stream.read()
         else:
-            yaml_str = yaml
-        state = safe_load(yaml_str)
-        dag = cls()
-        dag.__setstate__(state)
-        return dag
+            buf_str = buf
+        return dag_io.buf_to_dag(buf_str)
 
     def remove_node(self, node: str) -> None:
         """Remove a node (inplace), marginalising it out of any children's CPTs."""
@@ -356,15 +335,22 @@ class DAG(igraph.Graph):
 
     def remove_nodes(self, nodes: Union[List[str], igraph.VertexSeq]) -> None:
         """Remove multiple nodes (inplace), marginalising it out of any children's CPTs."""
+        if isinstance(nodes, igraph.VertexSeq):
+            nodes = [node['name'] for node in nodes]
         for node in nodes:
-            if isinstance(node, igraph.Vertex):
-                node = node['name']
             self.remove_node(node)
 
     def mutilate(self, node: str, evidence_level: str) -> 'DAG':
         """Return a copy with node's value fixed at evidence_level, and parents killed off."""
         assert node in self.nodes
-        mutilated_dag = deepcopy(self)
+        mutilated_dag = self.copy()
         mutilated_dag.remove_nodes(mutilated_dag.get_ancestors(node, only_parents=True))
         mutilated_dag.get_node(node)['CPD'].intervene(evidence_level)
         return mutilated_dag
+
+    def copy(self) -> 'DAG':
+        """Return a copy."""
+        self_copy = super().copy()
+        for vertex in self_copy.vs:
+            vertex['CPD'] = deepcopy(vertex['CPD'])
+        return self_copy

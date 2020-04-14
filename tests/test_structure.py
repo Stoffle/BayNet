@@ -1,11 +1,9 @@
 from time import time
-import pickle
 from pathlib import Path
 
 import pytest
 import networkx as nx
 import numpy as np
-import yaml
 
 from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
 from baynet.parameters import ConditionalProbabilityDistribution
@@ -197,31 +195,20 @@ def test_DAG_are_neighbours(test_dag):
 
 def test_DAG_get_v_structures(test_dag, reversed_dag, partial_dag):
     dag = test_dag
-    reversed_dag = reversed_dag
     assert partial_dag.get_v_structures() == {("C", "B", "D")}
     assert dag.get_v_structures() == set()
     assert dag.get_v_structures(True) == {("C", "B", "D")}
     assert reversed_dag.get_v_structures(True) == {("B", "D", "C")}
 
 
-def test_DAG_pickling(test_dag):
-    dag = test_dag
-    p = pickle.dumps(dag)
-    unpickled_dag = pickle.loads(p)
-
-    assert dag.nodes == unpickled_dag.nodes
-    assert dag.edges == unpickled_dag.edges == unpickled_dag.directed_edges
-
-
 def test_DAG_yaml_continuous_file(temp_out, test_dag):
-    dag_path = temp_out / 'cont.yml'
+    dag_path = temp_out / 'cont.pb'
     dag = test_dag
     dag.generate_continuous_parameters()
     dag.save(dag_path)
     dag2 = DAG.load(dag_path)
     assert dag.nodes == dag2.nodes
     assert dag.edges == dag2.edges
-    assert dag.__dict__['vs'] == dag2.__dict__['vs']
 
 
 def test_DAG_yaml_continuous_str(test_dag):
@@ -231,18 +218,16 @@ def test_DAG_yaml_continuous_str(test_dag):
     dag2 = DAG.load(dag_string)
     assert dag.nodes == dag2.nodes
     assert dag.edges == dag2.edges
-    assert dag.__dict__['vs'] == dag2.__dict__['vs']
 
 
 def test_DAG_yaml_discrete_file(temp_out, test_dag):
-    dag_path = temp_out / 'cont.yml'
+    dag_path = temp_out / 'cont.pb'
     dag = test_dag
     dag.generate_discrete_parameters(seed=0)
     dag.save(dag_path)
     dag2 = DAG.load(dag_path)
     assert dag.nodes == dag2.nodes
     assert dag.edges == dag2.edges
-    assert dag.__dict__['vs'] == dag2.__dict__['vs']
 
 
 def test_DAG_yaml_discrete_str(test_dag):
@@ -252,7 +237,6 @@ def test_DAG_yaml_discrete_str(test_dag):
     dag2 = DAG.load(dag_string)
     assert dag.nodes == dag2.nodes
     assert dag.edges == dag2.edges
-    assert dag.__dict__['vs'] == dag2.__dict__['vs']
 
 
 def test_DAG_generate_parameters(test_dag):
