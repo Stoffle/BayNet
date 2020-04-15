@@ -1,5 +1,6 @@
 """Parameter tables for Graph objects."""
 from typing import List, Tuple, Optional
+from itertools import product
 import numpy as np
 import pandas as pd
 import igraph
@@ -12,6 +13,7 @@ class ConditionalProbabilityTable:
         """Initialise a conditional probability table."""
         if vertex is None:
             return
+        self.name = vertex['name']
         self.parents = [str(v['name']) for v in vertex.neighbors(mode="in")]
         parent_levels = [v['levels'] for v in vertex.neighbors(mode="in")]
         if any([pl is None for pl in parent_levels]):
@@ -25,6 +27,39 @@ class ConditionalProbabilityTable:
 
         self.array = np.zeros([*n_parent_levels, len(node_levels)], dtype=float)
         self.cumsum_array = np.zeros([*n_parent_levels, len(node_levels)], dtype=float)
+
+    @classmethod
+    def estimate(
+        cls, vertex: igraph.Vertex, data: pd.DataFrame, method: str = "mle"
+    ) -> 'ConditionalProbabilityTable':
+        """Create a CPT, populated with predicted parameters based on supplied data."""
+        if method != "mle":
+            raise NotImplementedError
+        cpt = cls(vertex)
+        cpt._mle(data)
+        return cpt
+
+    def _mle(self, data: pd.DataFrame) -> None:
+        """Predict parameters using the MLE method."""
+        if not self.parents:
+            self.array[:] = data[self.name].value_counts().reindex(range(len(self.levels))).values
+            self.rescale_probabilities()
+            return
+        parent_options = [list(range(levels)) for levels in self.array.shape[:-1]]
+        for parent_combination in product(*parent_options):
+            matches = [data[parent] == val for parent, val in zip(self.parents, parent_combination)]
+            if len(matches) == 1:
+                matching_rows = matches[0]
+            else:
+                matching_rows = pd.concat(matches, axis=1).apply(np.all, axis=1)
+            totals = (
+                data[matching_rows][self.name]
+                .value_counts()
+                .reindex(range(len(self.levels)))
+                .values
+            )
+            self.array[tuple(parent_combination)] = totals
+        self.rescale_probabilities()
 
     def rescale_probabilities(self) -> None:
         """
@@ -44,7 +79,7 @@ class ConditionalProbabilityTable:
 
     def sample(self, incomplete_data: pd.DataFrame) -> pd.DataFrame:
         """Sample based on parent values."""
-        parent_values_array = incomplete_data[self.parents].values.astype(int)
+        parent_values_array = incomplete_data[self.parents].apply(lambda x: x.cat.codes).values
         random_vector = np.random.uniform(size=parent_values_array.shape[0])
         parent_values: List[Tuple[int, ...]] = list(map(tuple, parent_values_array))
         out_array = _sample_cpt(self.cumsum_array, parent_values, random_vector)
@@ -114,6 +149,7 @@ class ConditionalProbabilityDistribution:
         self.std = std
         if node is None:
             return
+        self.name = node['name']
         self.parents = [str(parent['name']) for parent in node.neighbors(mode="in")]
         self.array = np.zeros(len(self.parents), dtype=float)
 

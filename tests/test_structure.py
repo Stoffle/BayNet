@@ -256,6 +256,8 @@ def test_DAG_generate_parameters(test_dag):
 
 def test_DAG_sample_continuous(test_dag):
     dag = test_dag
+    with pytest.raises(RuntimeError):
+        dag.sample(1)
     dag.generate_continuous_parameters(std=0.0)
     assert np.allclose(dag.sample(10).values.astype(int), 0)
 

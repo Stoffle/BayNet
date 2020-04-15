@@ -41,11 +41,13 @@ def buf_to_dag(dag_buf: bytes) -> 'baynet.DAG':
         if buf_node.variable_type == DAG_pb2.NodeType.DISCRETE:
             node['levels'] = list(buf_node.levels)
             cpd = ConditionalProbabilityTable()
+            cpd.name = buf_node.name
             cpd.levels = list(buf_node.levels)
             cpd.array = buf_to_array(buf_node.cpd_array)
             cpd.rescale_probabilities()
         elif buf_node.variable_type == DAG_pb2.NodeType.CONTINUOUS:
             cpd = ConditionalProbabilityDistribution()
+            cpd.name = buf_node.name
             cpd.array = buf_to_array(buf_node.cpd_array)
         cpd.parents = list(buf_node.parents)
         node['CPD'] = cpd
