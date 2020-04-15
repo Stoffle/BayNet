@@ -1,5 +1,4 @@
-from time import time
-from pathlib import Path
+import pickle
 
 import pytest
 import networkx as nx
@@ -296,3 +295,10 @@ def test_Graph():
     from baynet import Graph
 
     g = Graph()
+
+
+def test_pickling(test_dag):
+    dump = pickle.dumps(test_dag)
+    dag = pickle.loads(dump)
+    assert dag.edges == test_dag.edges
+    assert dag.nodes == test_dag.nodes
