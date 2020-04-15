@@ -286,6 +286,11 @@ class DAG(igraph.Graph):
             vertex['CPD'] = ConditionalProbabilityTable(vertex)
             vertex['CPD'].sample_parameters(alpha=alpha, seed=seed)
 
+    def estimate_parameters(self, data: pd.DataFrame, method: str = "mle") -> None:
+        """Estimate conditional probabilities based on supplied data."""
+        for vertex in self.vs:
+            vertex['CPD'] = ConditionalProbabilityTable.estimate(vertex, data=data, method=method)
+
     def sample(self, n_samples: int, seed: Optional[int] = None) -> pd.DataFrame:
         """Sample n_samples rows of data from the graph."""
         if seed is not None:
@@ -298,6 +303,8 @@ class DAG(igraph.Graph):
             isinstance(vertex['CPD'], ConditionalProbabilityDistribution) for vertex in self.vs
         ):
             dtype = float
+        else:
+            raise RuntimeError("DAG requires parameters before sampling is possible.")
         data = pd.DataFrame(
             np.zeros((n_samples, len(self.nodes))).astype(dtype), columns=self.vs['name']
         )
