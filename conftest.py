@@ -9,22 +9,22 @@ REVERSED_MODELSTRING = "[A][B][C|B][D|B:C]"
 
 @pytest.fixture(scope="function")
 def test_dag() -> DAG:
-    return DAG.from_modelstring(TEST_MODELSTRING, name='test_dag')
+    return DAG.from_modelstring(TEST_MODELSTRING)
 
 
 @pytest.fixture(scope="function")
 def reversed_dag() -> DAG:
-    return DAG.from_modelstring(REVERSED_MODELSTRING, name='test_dag')
+    return DAG.from_modelstring(REVERSED_MODELSTRING)
 
 
 @pytest.fixture(scope="function")
 def partial_dag() -> DAG:
-    return DAG.from_modelstring("[A][B|C:D][C][D]", name='partial_dag')
+    return DAG.from_modelstring("[A][B|C:D][C][D]")
 
 
 @pytest.fixture(scope="function")
 def empty_dag() -> DAG:
-    return DAG.from_amat(np.zeros((4, 4)), list("ABCD"), name='empty_dag')
+    return DAG.from_amat(np.zeros((4, 4)), list("ABCD"))
 
 
 @pytest.fixture(scope="session")

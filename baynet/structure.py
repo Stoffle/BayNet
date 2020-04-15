@@ -42,10 +42,16 @@ class DAG(igraph.Graph):
     """Directed Acyclic Graph object, built around igraph.Graph, adapted for bayesian networks."""
 
     # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
-    def __init__(self, *args: None, **kwargs: Any) -> None:
+    def __init__(self, buf: Optional[bytes] = None) -> None:
         """Create a graph object."""
         # Grab *args and **kwargs because pickle/igraph do weird things here
         super().__init__(directed=True, vertex_attrs={'CPD': None})
+        if buf is not None:
+            dag_io.buf_to_dag(buf, dag=self)
+
+    def __reduce__(self) -> Tuple[Any]:
+        return self.__class__, (self.save(),)
+
 
     @classmethod
     def from_modelstring(cls, modelstring: str, **kwargs: Dict[str, Any]) -> 'DAG':
