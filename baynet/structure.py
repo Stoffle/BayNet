@@ -298,7 +298,7 @@ class DAG(igraph.Graph):
         except KeyError:
             if not infer_levels:
                 raise ValueError(
-                    "`estimate_paramaters()` requires levels be defined or `infer_levels=True`"
+                    "`estimate_parameters()` requires levels be defined or `infer_levels=True`"
                 )
             for vertex in self.vs:
                 vertex['levels'] = sorted(data[vertex['name']].unique().astype(str))
