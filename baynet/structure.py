@@ -289,8 +289,19 @@ class DAG(igraph.Graph):
             vertex['CPD'] = ConditionalProbabilityTable(vertex)
             vertex['CPD'].sample_parameters(alpha=alpha, seed=seed)
 
-    def estimate_parameters(self, data: pd.DataFrame, method: str = "mle") -> None:
+    def estimate_parameters(
+        self, data: pd.DataFrame, method: str = "mle", infer_levels: bool = False
+    ) -> None:
         """Estimate conditional probabilities based on supplied data."""
+        try:
+            self.vs['levels']
+        except KeyError:
+            if not infer_levels:
+                raise ValueError(
+                    "`estimate_paramaters()` requires levels be defined or `infer_levels=True`"
+                )
+            for vertex in self.vs:
+                vertex['levels'] = sorted(data[vertex['name']].unique().astype(str))
         for vertex in self.vs:
             vertex['CPD'] = ConditionalProbabilityTable.estimate(vertex, data=data, method=method)
 

@@ -3,6 +3,7 @@ import pickle
 import pytest
 import networkx as nx
 import numpy as np
+import pandas as pd
 
 from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
 from baynet.parameters import ConditionalProbabilityDistribution
@@ -251,6 +252,28 @@ def test_DAG_generate_parameters(test_dag):
         assert dag.vs[1]['CPD'].array.shape == (len(levels), len(levels), len(levels))
         assert dag.vs[2]['CPD'].array.shape == (len(levels), len(levels))
         assert dag.vs[3]['CPD'].array.shape == (len(levels),)
+
+
+def test_DAG_estimate_parameters(test_dag):
+    dag = test_dag.copy()
+    data = pd.DataFrame(
+        {'A': [0, 0, 0, 0, 1, 1, 1, 1], 'B': [0, 1] * 4, 'C': [0] * 8, 'D': [1] * 8}
+    )
+    with pytest.raises(ValueError):
+        dag.estimate_parameters(data, method="mle")
+    dag.estimate_parameters(data, method="mle", infer_levels=True)
+    assert np.allclose(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.allclose(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
+    assert np.allclose(dag.vs[2]['CPD'].cumsum_array, 1.0)
+    assert np.allclose(dag.vs[3]['CPD'].cumsum_array, 1.0)
+
+    dag2 = test_dag.copy()
+    dag2.vs['levels'] = [["A", "B"] for v in dag.vs]
+    dag2.estimate_parameters(data, method="mle")
+    assert np.allclose(dag2.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.allclose(dag2.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
+    assert np.allclose(dag2.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
+    assert np.allclose(dag2.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
 
 
 def test_DAG_sample_continuous(test_dag):
