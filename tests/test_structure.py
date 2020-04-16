@@ -1,9 +1,9 @@
-from time import time
-from pathlib import Path
+import pickle
 
 import pytest
 import networkx as nx
 import numpy as np
+import pandas as pd
 
 from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
 from baynet.parameters import ConditionalProbabilityDistribution
@@ -254,8 +254,32 @@ def test_DAG_generate_parameters(test_dag):
         assert dag.vs[3]['CPD'].array.shape == (len(levels),)
 
 
+def test_DAG_estimate_parameters(test_dag):
+    dag = test_dag.copy()
+    data = pd.DataFrame(
+        {'A': [0, 0, 0, 0, 1, 1, 1, 1], 'B': [0, 1] * 4, 'C': [0] * 8, 'D': [1] * 8}
+    )
+    with pytest.raises(ValueError):
+        dag.estimate_parameters(data, method="mle")
+    dag.estimate_parameters(data, method="mle", infer_levels=True)
+    assert np.allclose(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.allclose(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
+    assert np.allclose(dag.vs[2]['CPD'].cumsum_array, 1.0)
+    assert np.allclose(dag.vs[3]['CPD'].cumsum_array, 1.0)
+
+    dag2 = test_dag.copy()
+    dag2.vs['levels'] = [["A", "B"] for v in dag.vs]
+    dag2.estimate_parameters(data, method="mle")
+    assert np.allclose(dag2.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.allclose(dag2.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
+    assert np.allclose(dag2.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
+    assert np.allclose(dag2.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
+
+
 def test_DAG_sample_continuous(test_dag):
     dag = test_dag
+    with pytest.raises(RuntimeError):
+        dag.sample(1)
     dag.generate_continuous_parameters(std=0.0)
     assert np.allclose(dag.sample(10).values.astype(int), 0)
 
@@ -296,10 +320,17 @@ def test_Graph():
     g = Graph()
 
 
+def test_pickling(test_dag):
+    dump = pickle.dumps(test_dag)
+    dag = pickle.loads(dump)
+    assert dag.edges == test_dag.edges
+    assert dag.nodes == test_dag.nodes
+
+
 if __name__ == "__main__":
+    from pathlib import Path
     from baynet.utils.dag_io import dag_from_bif
 
     bif_path = Path(__file__).parent.parent / 'alarm.bif'
 
     dag = dag_from_bif(bif_path.open().read())
-

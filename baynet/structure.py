@@ -42,23 +42,26 @@ class DAG(igraph.Graph):
     """Directed Acyclic Graph object, built around igraph.Graph, adapted for bayesian networks."""
 
     # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
-    def __init__(self, *args: None, **kwargs: Any) -> None:
+    def __init__(self, buf: Optional[bytes] = None) -> None:
         """Create a graph object."""
-        # Grab *args and **kwargs because pickle/igraph do weird things here
         super().__init__(directed=True, vertex_attrs={'CPD': None})
+        if buf is not None:
+            dag_io.buf_to_dag(buf, dag=self)
+
+    def __reduce__(self) -> Tuple:
+        """Return representation for Pickle."""
+        return self.__class__, (self.save(),)
 
     @classmethod
-    def from_modelstring(cls, modelstring: str, **kwargs: Dict[str, Any]) -> 'DAG':
+    def from_modelstring(cls, modelstring: str) -> 'DAG':
         """Instantiate a Graph object from a modelstring."""
-        dag = cls(**kwargs)
+        dag = cls()
         dag.add_vertices(_nodes_from_modelstring(modelstring))
         dag.add_edges(_edges_from_modelstring(modelstring))
         return dag
 
     @classmethod
-    def from_amat(
-        cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str], **kwargs: Dict[str, Any]
-    ) -> 'DAG':
+    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> 'DAG':
         """Instantiate a Graph object from an adjacency matrix."""
         if isinstance(amat, np.ndarray):
             amat = amat.tolist()
@@ -68,7 +71,7 @@ class DAG(igraph.Graph):
             raise ValueError(
                 f"Graph.from_amat() expected `colnames` of type list, but got {type(colnames)}"
             )
-        dag = cls(**kwargs)
+        dag = cls()
         dag.add_vertices(colnames)
         dag.add_edges(
             [
@@ -81,9 +84,9 @@ class DAG(igraph.Graph):
         return dag
 
     @classmethod
-    def from_other(cls, other_graph: Any, **kwargs: Dict[str, Any]) -> 'DAG':
+    def from_other(cls, other_graph: Any) -> 'DAG':
         """Attempt to create a Graph from an existing graph object (nx.DiGraph etc.)."""
-        graph = cls(**kwargs)
+        graph = cls()
         graph.add_vertices(_nodes_sorted(other_graph.nodes))
         graph.add_edges(other_graph.edges)
         return graph
@@ -286,6 +289,22 @@ class DAG(igraph.Graph):
             vertex['CPD'] = ConditionalProbabilityTable(vertex)
             vertex['CPD'].sample_parameters(alpha=alpha, seed=seed)
 
+    def estimate_parameters(
+        self, data: pd.DataFrame, method: str = "mle", infer_levels: bool = False
+    ) -> None:
+        """Estimate conditional probabilities based on supplied data."""
+        try:
+            self.vs['levels']
+        except KeyError:
+            if not infer_levels:
+                raise ValueError(
+                    "`estimate_paramaters()` requires levels be defined or `infer_levels=True`"
+                )
+            for vertex in self.vs:
+                vertex['levels'] = sorted(data[vertex['name']].unique().astype(str))
+        for vertex in self.vs:
+            vertex['CPD'] = ConditionalProbabilityTable.estimate(vertex, data=data, method=method)
+
     def sample(self, n_samples: int, seed: Optional[int] = None) -> pd.DataFrame:
         """Sample n_samples rows of data from the graph."""
         if seed is not None:
@@ -298,6 +317,8 @@ class DAG(igraph.Graph):
             isinstance(vertex['CPD'], ConditionalProbabilityDistribution) for vertex in self.vs
         ):
             dtype = float
+        else:
+            raise RuntimeError("DAG requires parameters before sampling is possible.")
         data = pd.DataFrame(
             np.zeros((n_samples, len(self.nodes))).astype(dtype), columns=self.vs['name']
         )
@@ -306,13 +327,13 @@ class DAG(igraph.Graph):
         data = pd.DataFrame(data, columns=[vertex['name'] for vertex in self.vs])
         return data
 
-    def save(self, buf_path: Optional[Path] = None) -> Optional[bytes]:
+    def save(self, buf_path: Optional[Path] = None) -> bytes:
         """Save DAG as protobuf, or string if no path is specified."""
         dag_proto = dag_io.dag_to_buf(self)
-        if buf_path is None:
-            return dag_proto
-        with buf_path.open('wb') as stream:
-            stream.write(dag_proto)
+        if buf_path is not None:
+            with buf_path.open('wb') as stream:
+                stream.write(dag_proto)
+        return dag_proto
 
     @classmethod
     def load(cls, buf: Union[Path, bytes]) -> 'DAG':
