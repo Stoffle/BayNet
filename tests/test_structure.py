@@ -333,4 +333,4 @@ if __name__ == "__main__":
 
     bif_path = Path(__file__).parent.parent / 'alarm.bif'
 
-    dag = dag_from_bif(bif_path.open().read())
+    dag = dag_from_bif(bif_path)

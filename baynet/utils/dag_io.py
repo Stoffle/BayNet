@@ -1,7 +1,8 @@
 """Functions for loading/saving DAGs."""
 from typing import no_type_check, Optional
+from pathlib import Path
 import numpy as np
-import pyparsing
+import pyparsing as pp
 import baynet
 from baynet.utils import DAG_pb2
 from baynet.parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
@@ -66,5 +67,48 @@ def buf_to_array(array_buf: DAG_pb2.Array) -> np.ndarray:
     return arr
 
 
-def dag_from_bif(bif_str: str):
-    return bif_str
+def dag_from_bif(bif_path: Path):
+    """Create a DAG object from a .bif file."""
+    lc, rc, ls, rs, lb, rb, bar, sc = map(pp.Suppress, "{}[]()|;")
+    var_literal = pp.Suppress(pp.CaselessLiteral("variable"))
+    probability_literal = pp.Suppress(pp.CaselessLiteral("probability"))
+    type_discrete_literal = pp.Suppress(pp.CaselessLiteral("type discrete"))
+    float_ = pp.Word(pp.nums+'.').setParseAction(lambda s,l,t: [float(t[0])])
+    word = pp.Word(pp.alphanums)
+    int_ = pp.Word(pp.nums).setParseAction(lambda s,l,t: [int(t[0])])
+
+    source_cpt_row = pp.Suppress(pp.CaselessLiteral("table")) + pp.delimitedList(float_) + sc
+    source_cpt = probability_literal + lb + word('variable') + rb + lc + source_cpt_row('probabilities') + rc
+
+    child_cpt_row = pp.Group(lb + pp.delimitedList(word)('parent_values') + rb + pp.delimitedList(float_)('probabilities') + sc)
+    child_cpt = probability_literal + lb + word('variable') + bar + pp.delimitedList(word)('parents') + rb + lc + pp.OneOrMore(child_cpt_row)('cpt') + rc
+
+    network = pp.Literal("network unknown") + lc + pp.Optional(word) + rc
+    variable = pp.Group(var_literal + word('name') + lc + type_discrete_literal + ls + int_ + rs + lc + pp.delimitedList(word)('levels') + rc + sc + rc)
+    cpt = pp.Group(source_cpt ^ child_cpt)
+
+    parser = pp.Suppress(pp.Optional(network)) + pp.OneOrMore(variable)('variables') + pp.OneOrMore(cpt)('cpts')
+
+    parsed = parser.parseFile(bif_path, parseAll=True).asDict()
+
+    dag = baynet.DAG()
+    for vertex in parsed['variables']:
+        dag.add_vertex(name = vertex['name'], levels = vertex['levels'])
+    for cpt in parsed['cpts']:
+        for parent in cpt.get('parents', []):
+            dag.add_edge(parent, cpt['variable'])
+    for cpt in parsed['cpts']:
+        node = dag.get_node(cpt['variable'])
+        node['CPD'] = ConditionalProbabilityTable(node)
+        if 'parents' not in cpt:
+            node['CPD'].array = np.array(cpt['probabilities'])
+            node['CPD'].rescale_probabilities()
+            continue
+        for row in cpt['cpt']:
+            indexer = [0]*len(cpt['parents'])
+            for parent, level in zip(cpt['parents'], row['parent_values']):
+                idx = node['CPD'].parents.index(parent)
+                indexer[idx] = dag.get_node(parent)['levels'].index(level)
+            node['CPD'].array[tuple(indexer)] = row['probabilities']
+        node['CPD'].rescale_probabilities()
+    return dag
