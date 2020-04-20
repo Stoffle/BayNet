@@ -1,10 +1,12 @@
 import pickle
+from pathlib import Path
 
 import pytest
 import networkx as nx
 import numpy as np
 import pandas as pd
 
+from baynet.utils.dag_io import dag_from_bif
 from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
 from baynet.parameters import ConditionalProbabilityDistribution
 
@@ -325,3 +327,15 @@ def test_pickling(test_dag):
     dag = pickle.loads(dump)
     assert dag.edges == test_dag.edges
     assert dag.nodes == test_dag.nodes
+
+
+def test_bif_parser():
+    bif_path = Path(__file__).parent / 'earthquake.bif'
+
+    dag = dag_from_bif(bif_path)
+    alarm_dag = DAG.from_modelstring(
+        "[Alarm|Burglary:Earthquake][Burglary][Earthquake][JohnCalls|Alarm][MaryCalls|Alarm]"
+    )
+    assert dag.nodes == alarm_dag.nodes
+    assert dag.edges == alarm_dag.edges
+    dag.sample(10)

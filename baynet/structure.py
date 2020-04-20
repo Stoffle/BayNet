@@ -1,7 +1,7 @@
 """Graph object."""
 from __future__ import annotations
 from itertools import combinations
-from typing import List, Union, Tuple, Set, Any, Dict, Optional, Type
+from typing import List, Union, Tuple, Set, Any, Optional, Type
 from pathlib import Path
 from copy import deepcopy
 
@@ -44,7 +44,7 @@ class DAG(igraph.Graph):
     # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
     def __init__(self, buf: Optional[bytes] = None) -> None:
         """Create a graph object."""
-        super().__init__(directed=True, vertex_attrs={'CPD': None})
+        super().__init__(directed=True, vertex_attrs={"CPD": None})
         if buf is not None:
             dag_io.buf_to_dag(buf, dag=self)
 
@@ -53,7 +53,7 @@ class DAG(igraph.Graph):
         return self.__class__, (self.save(),)
 
     @classmethod
-    def from_modelstring(cls, modelstring: str) -> 'DAG':
+    def from_modelstring(cls, modelstring: str) -> "DAG":
         """Instantiate a Graph object from a modelstring."""
         dag = cls()
         dag.add_vertices(_nodes_from_modelstring(modelstring))
@@ -61,7 +61,7 @@ class DAG(igraph.Graph):
         return dag
 
     @classmethod
-    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> 'DAG':
+    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> "DAG":
         """Instantiate a Graph object from an adjacency matrix."""
         if isinstance(amat, np.ndarray):
             amat = amat.tolist()
@@ -84,7 +84,7 @@ class DAG(igraph.Graph):
         return dag
 
     @classmethod
-    def from_other(cls, other_graph: Any) -> 'DAG':
+    def from_other(cls, other_graph: Any) -> "DAG":
         """Attempt to create a Graph from an existing graph object (nx.DiGraph etc.)."""
         graph = cls()
         graph.add_vertices(_nodes_sorted(other_graph.nodes))
@@ -94,14 +94,14 @@ class DAG(igraph.Graph):
     @property
     def dtype(self) -> Optional[str]:
         """Return data type of parameterised network."""
-        if all(isinstance(vertex['CPD'], ConditionalProbabilityTable) for vertex in self.vs):
+        if all(isinstance(vertex["CPD"], ConditionalProbabilityTable) for vertex in self.vs):
             return "discrete"
         elif all(
-            isinstance(vertex['CPD'], ConditionalProbabilityDistribution) for vertex in self.vs
+            isinstance(vertex["CPD"], ConditionalProbabilityDistribution) for vertex in self.vs
         ):
             return "continuous"
         elif all(
-            type(vertex['CPD']) in [ConditionalProbabilityTable, ConditionalProbabilityDistribution]
+            type(vertex["CPD"]) in [ConditionalProbabilityTable, ConditionalProbabilityDistribution]
             for vertex in self.vs
         ):
             return "mixed"
@@ -110,7 +110,7 @@ class DAG(igraph.Graph):
     @property
     def nodes(self) -> Set[str]:
         """Return a set of the names of all nodes in the network."""
-        return {v['name'] for v in self.vs}
+        return {v["name"] for v in self.vs}
 
     @property
     def edges(self) -> Set[Tuple[str, str]]:
@@ -127,20 +127,20 @@ class DAG(igraph.Graph):
     @property
     def directed_edges(self) -> Set[Tuple[str, str]]:
         """Return forward edges in the Graph."""
-        return {(self.vs[e.source]['name'], self.vs[e.target]['name']) for e in self.es}
+        return {(self.vs[e.source]["name"], self.vs[e.target]["name"]) for e in self.es}
 
     @property
     def reversed_edges(self) -> Set[Tuple[str, str]]:
         """Return reversed edges in the Graph."""
-        return {(self.vs[e.target]['name'], self.vs[e.source]['name']) for e in self.es}
+        return {(self.vs[e.target]["name"], self.vs[e.source]["name"]) for e in self.es}
 
     def get_node_name(self, node: int) -> str:
         """Convert node index to node name."""
-        return self.vs[node]['name']
+        return self.vs[node]["name"]
 
     def get_node_index(self, node: str) -> int:
         """Convert node name to node index."""
-        return self.vs['name'].index(node)
+        return self.vs["name"].index(node)
 
     def get_node(self, name: str) -> igraph.Vertex:
         """Get Vertex object by node name."""
@@ -182,7 +182,7 @@ class DAG(igraph.Graph):
         modelstring = ""
         for node in _nodes_sorted(list(self.nodes)):
             parents = _nodes_sorted(
-                [v['name'] for v in self.get_ancestors(node, only_parents=True)]
+                [v["name"] for v in self.get_ancestors(node, only_parents=True)]
             )
             modelstring += f"[{node}"
             modelstring += f"|{':'.join(parents)}" if parents else ""
@@ -233,10 +233,10 @@ class DAG(igraph.Graph):
             all_pairs = combinations(all_parents, 2)
             all_pairs = [sorted(pair) for pair in all_pairs]
             if include_shielded:
-                node_v_structures = [(a['name'], node, b['name']) for a, b in all_pairs]
+                node_v_structures = [(a["name"], node, b["name"]) for a, b in all_pairs]
             else:
                 node_v_structures = [
-                    (a['name'], node, b['name'])
+                    (a["name"], node, b["name"])
                     for a, b in all_pairs
                     if not self.are_neighbours(a, b)
                 ]
@@ -252,8 +252,8 @@ class DAG(igraph.Graph):
     ) -> None:
         """Populate continuous conditional distributions for each node."""
         for vertex in self.vs:
-            vertex['CPD'] = ConditionalProbabilityDistribution(vertex, mean=mean, std=std)
-            vertex['CPD'].sample_parameters(weights=possible_weights, seed=seed)
+            vertex["CPD"] = ConditionalProbabilityDistribution(vertex, mean=mean, std=std)
+            vertex["CPD"].sample_parameters(weights=possible_weights, seed=seed)
 
     def generate_levels(
         self,
@@ -271,7 +271,7 @@ class DAG(igraph.Graph):
         assert max_levels >= min_levels >= 2
         for vertex in self.vs:
             n_levels = np.random.randint(min_levels, max_levels + 1)
-            vertex['levels'] = list(map(str, range(n_levels)))
+            vertex["levels"] = list(map(str, range(n_levels)))
 
     def generate_discrete_parameters(
         self,
@@ -282,28 +282,28 @@ class DAG(igraph.Graph):
     ) -> None:
         """Populate discrete conditional parameter tables for each node."""
         try:
-            self.vs['levels']
+            self.vs["levels"]
         except KeyError:
             self.generate_levels(min_levels, max_levels, seed)
         for vertex in self.vs:
-            vertex['CPD'] = ConditionalProbabilityTable(vertex)
-            vertex['CPD'].sample_parameters(alpha=alpha, seed=seed)
+            vertex["CPD"] = ConditionalProbabilityTable(vertex)
+            vertex["CPD"].sample_parameters(alpha=alpha, seed=seed)
 
     def estimate_parameters(
         self, data: pd.DataFrame, method: str = "mle", infer_levels: bool = False
     ) -> None:
         """Estimate conditional probabilities based on supplied data."""
         try:
-            self.vs['levels']
+            self.vs["levels"]
         except KeyError:
             if not infer_levels:
                 raise ValueError(
-                    "`estimate_paramaters()` requires levels be defined or `infer_levels=True`"
+                    "`estimate_parameters()` requires levels be defined or `infer_levels=True`"
                 )
             for vertex in self.vs:
-                vertex['levels'] = sorted(data[vertex['name']].unique().astype(str))
+                vertex["levels"] = sorted(data[vertex["name"]].unique().astype(str))
         for vertex in self.vs:
-            vertex['CPD'] = ConditionalProbabilityTable.estimate(vertex, data=data, method=method)
+            vertex["CPD"] = ConditionalProbabilityTable.estimate(vertex, data=data, method=method)
 
     def sample(self, n_samples: int, seed: Optional[int] = None) -> pd.DataFrame:
         """Sample n_samples rows of data from the graph."""
@@ -311,35 +311,35 @@ class DAG(igraph.Graph):
             np.random.seed(seed)
         sorted_nodes = self.topological_sorting(mode="out")
         dtype: Type
-        if all(isinstance(vertex['CPD'], ConditionalProbabilityTable) for vertex in self.vs):
+        if all(isinstance(vertex["CPD"], ConditionalProbabilityTable) for vertex in self.vs):
             dtype = int
         elif all(
-            isinstance(vertex['CPD'], ConditionalProbabilityDistribution) for vertex in self.vs
+            isinstance(vertex["CPD"], ConditionalProbabilityDistribution) for vertex in self.vs
         ):
             dtype = float
         else:
             raise RuntimeError("DAG requires parameters before sampling is possible.")
         data = pd.DataFrame(
-            np.zeros((n_samples, len(self.nodes))).astype(dtype), columns=self.vs['name']
+            np.zeros((n_samples, len(self.nodes))).astype(dtype), columns=self.vs["name"],
         )
         for node_idx in sorted_nodes:
-            data.iloc[:, node_idx] = self.vs[node_idx]['CPD'].sample(data)
-        data = pd.DataFrame(data, columns=[vertex['name'] for vertex in self.vs])
+            data.iloc[:, node_idx] = self.vs[node_idx]["CPD"].sample(data)
+        data = pd.DataFrame(data, columns=[vertex["name"] for vertex in self.vs])
         return data
 
     def save(self, buf_path: Optional[Path] = None) -> bytes:
         """Save DAG as protobuf, or string if no path is specified."""
         dag_proto = dag_io.dag_to_buf(self)
         if buf_path is not None:
-            with buf_path.open('wb') as stream:
+            with buf_path.open("wb") as stream:
                 stream.write(dag_proto)
         return dag_proto
 
     @classmethod
-    def load(cls, buf: Union[Path, bytes]) -> 'DAG':
+    def load(cls, buf: Union[Path, bytes]) -> "DAG":
         """Load DAG from yaml file or string."""
         if isinstance(buf, Path):
-            with buf.open('rb') as stream:
+            with buf.open("rb") as stream:
                 buf_str = stream.read()
         else:
             buf_str = buf
@@ -348,30 +348,30 @@ class DAG(igraph.Graph):
     def remove_node(self, node: str) -> None:
         """Remove a node (inplace), marginalising it out of any children's CPTs."""
         assert node in self.nodes
-        assert isinstance(self.get_node(node)['CPD'], ConditionalProbabilityTable)
+        assert isinstance(self.get_node(node)["CPD"], ConditionalProbabilityTable)
         for vertex in self.get_descendants(node, only_children=True):
-            assert isinstance(vertex['CPD'], ConditionalProbabilityTable)
-            vertex['CPD'].marginalise(node)
+            assert isinstance(vertex["CPD"], ConditionalProbabilityTable)
+            vertex["CPD"].marginalise(node)
         self.delete_vertices([node])
 
     def remove_nodes(self, nodes: Union[List[str], igraph.VertexSeq]) -> None:
         """Remove multiple nodes (inplace), marginalising it out of any children's CPTs."""
         if isinstance(nodes, igraph.VertexSeq):
-            nodes = [node['name'] for node in nodes]
+            nodes = [node["name"] for node in nodes]
         for node in nodes:
             self.remove_node(node)
 
-    def mutilate(self, node: str, evidence_level: str) -> 'DAG':
+    def mutilate(self, node: str, evidence_level: str) -> "DAG":
         """Return a copy with node's value fixed at evidence_level, and parents killed off."""
         assert node in self.nodes
         mutilated_dag = self.copy()
         mutilated_dag.remove_nodes(mutilated_dag.get_ancestors(node, only_parents=True))
-        mutilated_dag.get_node(node)['CPD'].intervene(evidence_level)
+        mutilated_dag.get_node(node)["CPD"].intervene(evidence_level)
         return mutilated_dag
 
-    def copy(self) -> 'DAG':
+    def copy(self) -> "DAG":
         """Return a copy."""
         self_copy = super().copy()
         for vertex in self_copy.vs:
-            vertex['CPD'] = deepcopy(vertex['CPD'])
+            vertex["CPD"] = deepcopy(vertex["CPD"])
         return self_copy

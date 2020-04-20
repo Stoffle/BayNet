@@ -13,14 +13,14 @@ class ConditionalProbabilityTable:
         """Initialise a conditional probability table."""
         if vertex is None:
             return
-        self.name = vertex['name']
-        self.parents = [str(v['name']) for v in vertex.neighbors(mode="in")]
-        parent_levels = [v['levels'] for v in vertex.neighbors(mode="in")]
+        self.name = vertex["name"]
+        self.parents = [str(v["name"]) for v in vertex.neighbors(mode="in")]
+        parent_levels = [v["levels"] for v in vertex.neighbors(mode="in")]
         if any([pl is None for pl in parent_levels]):
             raise ValueError(f"Parent of {vertex['name']} missing attribute 'levels'")
-        n_parent_levels = [len(v['levels']) for v in vertex.neighbors(mode="in")]
+        n_parent_levels = [len(v["levels"]) for v in vertex.neighbors(mode="in")]
 
-        node_levels = vertex['levels']
+        node_levels = vertex["levels"]
         if node_levels is None:
             raise ValueError(f"Node {vertex['name']} missing attribute 'levels'")
         self.levels = node_levels
@@ -31,15 +31,15 @@ class ConditionalProbabilityTable:
     @classmethod
     def estimate(
         cls, vertex: igraph.Vertex, data: pd.DataFrame, method: str = "mle"
-    ) -> 'ConditionalProbabilityTable':
+    ) -> "ConditionalProbabilityTable":
         """Create a CPT, populated with predicted parameters based on supplied data."""
         if method != "mle":
             raise NotImplementedError
         cpt = cls(vertex)
-        cpt._mle(data)
+        cpt.mle_estimate(data)
         return cpt
 
-    def _mle(self, data: pd.DataFrame) -> None:
+    def mle_estimate(self, data: pd.DataFrame) -> None:
         """Predict parameters using the MLE method."""
         if not self.parents:
             self.array[:] = data[self.name].value_counts().reindex(range(len(self.levels))).values
@@ -149,8 +149,8 @@ class ConditionalProbabilityDistribution:
         self.std = std
         if node is None:
             return
-        self.name = node['name']
-        self.parents = [str(parent['name']) for parent in node.neighbors(mode="in")]
+        self.name = node["name"]
+        self.parents = [str(parent["name"]) for parent in node.neighbors(mode="in")]
         self.array = np.zeros(len(self.parents), dtype=float)
 
     def sample_parameters(
