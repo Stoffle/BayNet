@@ -61,9 +61,7 @@ class DAG(igraph.Graph):
         return dag
 
     @classmethod
-    def from_amat(
-        cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]
-    ) -> "DAG":
+    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> "DAG":
         """Instantiate a Graph object from an adjacency matrix."""
         if isinstance(amat, np.ndarray):
             amat = amat.tolist()
@@ -96,18 +94,14 @@ class DAG(igraph.Graph):
     @property
     def dtype(self) -> Optional[str]:
         """Return data type of parameterised network."""
-        if all(
-            isinstance(vertex["CPD"], ConditionalProbabilityTable) for vertex in self.vs
-        ):
+        if all(isinstance(vertex["CPD"], ConditionalProbabilityTable) for vertex in self.vs):
             return "discrete"
         elif all(
-            isinstance(vertex["CPD"], ConditionalProbabilityDistribution)
-            for vertex in self.vs
+            isinstance(vertex["CPD"], ConditionalProbabilityDistribution) for vertex in self.vs
         ):
             return "continuous"
         elif all(
-            type(vertex["CPD"])
-            in [ConditionalProbabilityTable, ConditionalProbabilityDistribution]
+            type(vertex["CPD"]) in [ConditionalProbabilityTable, ConditionalProbabilityDistribution]
             for vertex in self.vs
         ):
             return "mixed"
@@ -231,9 +225,7 @@ class DAG(igraph.Graph):
         """Check if two nodes are neighbours in the Graph."""
         return node_a.index in self.neighborhood(vertices=node_b)
 
-    def get_v_structures(
-        self, include_shielded: bool = False
-    ) -> Set[Tuple[str, str, str]]:
+    def get_v_structures(self, include_shielded: bool = False) -> Set[Tuple[str, str, str]]:
         """Return a list of the Graph's v-structures in tuple form; (a,b,c) = a->b<-c."""
         v_structures: List[Tuple[str, str, str]] = []
         for node in self.nodes:
@@ -260,9 +252,7 @@ class DAG(igraph.Graph):
     ) -> None:
         """Populate continuous conditional distributions for each node."""
         for vertex in self.vs:
-            vertex["CPD"] = ConditionalProbabilityDistribution(
-                vertex, mean=mean, std=std
-            )
+            vertex["CPD"] = ConditionalProbabilityDistribution(vertex, mean=mean, std=std)
             vertex["CPD"].sample_parameters(weights=possible_weights, seed=seed)
 
     def generate_levels(
@@ -313,9 +303,7 @@ class DAG(igraph.Graph):
             for vertex in self.vs:
                 vertex["levels"] = sorted(data[vertex["name"]].unique().astype(str))
         for vertex in self.vs:
-            vertex["CPD"] = ConditionalProbabilityTable.estimate(
-                vertex, data=data, method=method
-            )
+            vertex["CPD"] = ConditionalProbabilityTable.estimate(vertex, data=data, method=method)
 
     def sample(self, n_samples: int, seed: Optional[int] = None) -> pd.DataFrame:
         """Sample n_samples rows of data from the graph."""
@@ -323,20 +311,16 @@ class DAG(igraph.Graph):
             np.random.seed(seed)
         sorted_nodes = self.topological_sorting(mode="out")
         dtype: Type
-        if all(
-            isinstance(vertex["CPD"], ConditionalProbabilityTable) for vertex in self.vs
-        ):
+        if all(isinstance(vertex["CPD"], ConditionalProbabilityTable) for vertex in self.vs):
             dtype = int
         elif all(
-            isinstance(vertex["CPD"], ConditionalProbabilityDistribution)
-            for vertex in self.vs
+            isinstance(vertex["CPD"], ConditionalProbabilityDistribution) for vertex in self.vs
         ):
             dtype = float
         else:
             raise RuntimeError("DAG requires parameters before sampling is possible.")
         data = pd.DataFrame(
-            np.zeros((n_samples, len(self.nodes))).astype(dtype),
-            columns=self.vs["name"],
+            np.zeros((n_samples, len(self.nodes))).astype(dtype), columns=self.vs["name"],
         )
         for node_idx in sorted_nodes:
             data.iloc[:, node_idx] = self.vs[node_idx]["CPD"].sample(data)

@@ -82,9 +82,7 @@ def dag_from_bif(bif_path: Path):
     word = pp.Word(pp.alphanums)
     int_ = pp.Word(pp.nums).setParseAction(lambda s, l, t: [int(t[0])])
 
-    source_cpt_row = (
-        pp.Suppress(pp.CaselessLiteral("table")) + pp.delimitedList(float_) + semicolon
-    )
+    source_cpt_row = pp.Suppress(pp.CaselessLiteral("table")) + pp.delimitedList(float_) + semicolon
     source_cpt = (
         probability_literal
         + lbracket

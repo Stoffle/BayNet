@@ -42,17 +42,12 @@ class ConditionalProbabilityTable:
     def mle_estimate(self, data: pd.DataFrame) -> None:
         """Predict parameters using the MLE method."""
         if not self.parents:
-            self.array[:] = (
-                data[self.name].value_counts().reindex(range(len(self.levels))).values
-            )
+            self.array[:] = data[self.name].value_counts().reindex(range(len(self.levels))).values
             self.rescale_probabilities()
             return
         parent_options = [list(range(levels)) for levels in self.array.shape[:-1]]
         for parent_combination in product(*parent_options):
-            matches = [
-                data[parent] == val
-                for parent, val in zip(self.parents, parent_combination)
-            ]
+            matches = [data[parent] == val for parent, val in zip(self.parents, parent_combination)]
             if len(matches) == 1:
                 matching_rows = matches[0]
             else:
@@ -77,27 +72,21 @@ class ConditionalProbabilityTable:
         # Anywhere with sum(probs) == 0, we set to all 1 prior to scaling
         self.cumsum_array = self.array.astype(float)
         self.cumsum_array[self.cumsum_array.sum(axis=-1) == 0] = 1.0
-        self.cumsum_array = np.nan_to_num(
-            self.cumsum_array, nan=1e-8, posinf=1.0 - 1e-8
-        )
+        self.cumsum_array = np.nan_to_num(self.cumsum_array, nan=1e-8, posinf=1.0 - 1e-8)
         # Rescale probabilities to sum to 1
         self.cumsum_array /= np.expand_dims(self.cumsum_array.sum(axis=-1), axis=-1)
         self.cumsum_array = self.cumsum_array.cumsum(axis=-1)
 
     def sample(self, incomplete_data: pd.DataFrame) -> pd.DataFrame:
         """Sample based on parent values."""
-        parent_values_array = (
-            incomplete_data[self.parents].apply(lambda x: x.cat.codes).values
-        )
+        parent_values_array = incomplete_data[self.parents].apply(lambda x: x.cat.codes).values
         random_vector = np.random.uniform(size=parent_values_array.shape[0])
         parent_values: List[Tuple[int, ...]] = list(map(tuple, parent_values_array))
         out_array = _sample_cpt(self.cumsum_array, parent_values, random_vector)
         dtype = pd.CategoricalDtype(self.levels, ordered=True)
         return pd.Categorical.from_codes(codes=out_array, dtype=dtype)
 
-    def sample_parameters(
-        self, alpha: Optional[float] = None, seed: Optional[int] = None
-    ) -> None:
+    def sample_parameters(self, alpha: Optional[float] = None, seed: Optional[int] = None) -> None:
         """Sample CPT from dirichlet distribution."""
         if alpha is None:
             alpha = 20.0
@@ -176,9 +165,7 @@ class ConditionalProbabilityDistribution:
 
     def sample(self, incomplete_data: pd.DataFrame) -> pd.DataFrame:
         """Sample column based on parent columns in incomplete data matrix."""
-        noise = np.random.normal(
-            loc=self.mean, scale=self.std, size=incomplete_data.shape[0]
-        )
+        noise = np.random.normal(loc=self.mean, scale=self.std, size=incomplete_data.shape[0])
         if len(self.parents) == 0:
             return noise
         parent_values = incomplete_data[self.parents]

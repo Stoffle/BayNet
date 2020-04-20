@@ -5,15 +5,11 @@ from .structure import DAG
 
 def _check_args(true_graph: DAG, learnt_graph: DAG, skeleton: bool = False) -> bool:
     if not isinstance(true_graph, DAG):
-        raise ValueError(
-            f"Expected `true_graph` to be a Graph object, got {type(true_graph)}"
-        )
+        raise ValueError(f"Expected `true_graph` to be a Graph object, got {type(true_graph)}")
     if not true_graph.is_directed() and not skeleton:
         raise ValueError("`true_graph` is undirected")
     if not isinstance(learnt_graph, DAG):
-        raise ValueError(
-            f"Expected `learnt_graph` to be a Graph object, got {type(learnt_graph)}"
-        )
+        raise ValueError(f"Expected `learnt_graph` to be a Graph object, got {type(learnt_graph)}")
     if not learnt_graph.is_directed() and not skeleton:
         raise ValueError("`learnt_graph` is undirected")
     return True
@@ -29,9 +25,7 @@ def false_positive_edges(
     return learnt_graph.skeleton_edges - true_graph.skeleton_edges
 
 
-def true_positive_edges(
-    true_graph: DAG, learnt_graph: DAG, skeleton: bool
-) -> Set[Tuple[str, str]]:
+def true_positive_edges(true_graph: DAG, learnt_graph: DAG, skeleton: bool) -> Set[Tuple[str, str]]:
     """Get the set of edges in both learnt_graph and true_graph."""
     _check_args(true_graph, learnt_graph, skeleton)
     if not skeleton:
@@ -53,9 +47,7 @@ def precision(true_graph: DAG, learnt_graph: DAG, skeleton: bool) -> float:
     """Compute (DAG or skeleton) precision of a learnt graph."""
     _check_args(true_graph, learnt_graph, skeleton)
     true_pos = len(true_positive_edges(true_graph, learnt_graph, skeleton))
-    all_learnt = (
-        len(learnt_graph.edges) if not skeleton else len(learnt_graph.skeleton_edges)
-    )
+    all_learnt = len(learnt_graph.edges) if not skeleton else len(learnt_graph.skeleton_edges)
     return 0.0 if (all_learnt == 0.0) else true_pos / all_learnt
 
 
@@ -86,25 +78,19 @@ def shd(true_graph: DAG, learnt_graph: DAG, skeleton: bool) -> int:
     return int(missing + added + backwards)
 
 
-def false_positive_v_structures(
-    true_graph: DAG, learnt_graph: DAG
-) -> Set[Tuple[str, str, str]]:
+def false_positive_v_structures(true_graph: DAG, learnt_graph: DAG) -> Set[Tuple[str, str, str]]:
     """Get the set of v-structures in learnt_graph but not true_graph."""
     _check_args(true_graph, learnt_graph)
     return learnt_graph.get_v_structures() - true_graph.get_v_structures()
 
 
-def true_positive_v_structures(
-    true_graph: DAG, learnt_graph: DAG
-) -> Set[Tuple[str, str, str]]:
+def true_positive_v_structures(true_graph: DAG, learnt_graph: DAG) -> Set[Tuple[str, str, str]]:
     """Get the set of v-structures in both learnt_graph and true_graph."""
     _check_args(true_graph, learnt_graph)
     return learnt_graph.get_v_structures() & true_graph.get_v_structures()
 
 
-def false_negative_v_structures(
-    true_graph: DAG, learnt_graph: DAG
-) -> Set[Tuple[str, str, str]]:
+def false_negative_v_structures(true_graph: DAG, learnt_graph: DAG) -> Set[Tuple[str, str, str]]:
     """Get the set of v-structures in true_graph but not learnt_graph."""
     _check_args(true_graph, learnt_graph)
     return true_graph.get_v_structures() - learnt_graph.get_v_structures()

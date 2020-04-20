@@ -1,10 +1,12 @@
 import pickle
+from pathlib import Path
 
 import pytest
 import networkx as nx
 import numpy as np
 import pandas as pd
 
+from baynet.utils.dag_io import dag_from_bif
 from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
 from baynet.parameters import ConditionalProbabilityDistribution
 
@@ -327,10 +329,22 @@ def test_pickling(test_dag):
     assert dag.nodes == test_dag.nodes
 
 
-if __name__ == "__main__":
-    from pathlib import Path
-    from baynet.utils.dag_io import dag_from_bif
-
-    bif_path = Path(__file__).parent.parent / 'alarm.bif'
+def test_bif_parser():
+    bif_path = Path(__file__).parent / 'alarm.bif'
 
     dag = dag_from_bif(bif_path)
+    alarm_dag = DAG.from_modelstring(
+        "[HYPOVOLEMIA][LVFAILURE][ERRLOWOUTPUT][ERRCAUTER][INSUFFANESTH][ANAPHYLAXIS]"
+        "[KINKEDTUBE][FIO2][PULMEMBOLUS][INTUBATION][DISCONNECT][MINVOLSET]"
+        "[HISTORY|LVFAILURE][LVEDVOLUME|HYPOVOLEMIA:LVFAILURE][STROKEVOLUME|HYPOVOLEMIA:LVFAILURE]"
+        "[TPR|ANAPHYLAXIS][PAP|PULMEMBOLUS][SHUNT|INTUBATION:PULMEMBOLUS][VENTMACH|MINVOLSET]"
+        "[CVP|LVEDVOLUME][PCWP|LVEDVOLUME][VENTTUBE|DISCONNECT:VENTMACH]"
+        "[PRESS|INTUBATION:KINKEDTUBE:VENTTUBE][VENTLUNG|INTUBATION:KINKEDTUBE:VENTTUBE]"
+        "[MINVOL|INTUBATION:VENTLUNG][VENTALV|INTUBATION:VENTLUNG][PVSAT|FIO2:VENTALV]"
+        "[ARTCO2|VENTALV][EXPCO2|ARTCO2:VENTLUNG][SAO2|PVSAT:SHUNT]"
+        "[CATECHOL|ARTCO2:INSUFFANESTH:SAO2:TPR][HR|CATECHOL][HRBP|ERRLOWOUTPUT:HR]"
+        "[HREKG|ERRCAUTER:HR][HRSAT|ERRCAUTER:HR][CO|HR:STROKEVOLUME][BP|CO:TPR]"
+    )
+    assert dag.nodes == alarm_dag.nodes
+    assert dag.edges == alarm_dag.edges
+    dag.sample(10)
