@@ -79,14 +79,14 @@ def dag_from_bif(bif_path: Path) -> 'baynet.DAG':
     probability_literal = pp.Suppress(pp.CaselessLiteral("probability"))
     type_discrete_literal = pp.Suppress(pp.CaselessLiteral("type discrete"))
     float_ = pp.Word(pp.nums + ".").setParseAction(lambda s, l, t: [float(t[0])])
-    word = pp.Word(pp.alphanums)
+    var_name = pp.Word(pp.alphanums + "_")
     int_ = pp.Word(pp.nums).setParseAction(lambda s, l, t: [int(t[0])])
 
     source_cpt_row = pp.Suppress(pp.CaselessLiteral("table")) + pp.delimitedList(float_) + semicolon
     source_cpt = (
         probability_literal
         + lbracket
-        + word("variable")
+        + var_name("variable")
         + rbracket
         + lcurly
         + source_cpt_row("probabilities")
@@ -95,7 +95,7 @@ def dag_from_bif(bif_path: Path) -> 'baynet.DAG':
 
     child_cpt_row = pp.Group(
         lbracket
-        + pp.delimitedList(word)("parent_values")
+        + pp.delimitedList(var_name)("parent_values")
         + rbracket
         + pp.delimitedList(float_)("probabilities")
         + semicolon
@@ -103,26 +103,26 @@ def dag_from_bif(bif_path: Path) -> 'baynet.DAG':
     child_cpt = (
         probability_literal
         + lbracket
-        + word("variable")
+        + var_name("variable")
         + vbar
-        + pp.delimitedList(word)("parents")
+        + pp.delimitedList(var_name)("parents")
         + rbracket
         + lcurly
         + pp.OneOrMore(child_cpt_row)("cpt")
         + rcurly
     )
 
-    network = pp.Literal("network unknown") + lcurly + pp.Optional(word) + rcurly
+    network = pp.Literal("network unknown") + lcurly + pp.Optional(var_name) + rcurly
     variable = pp.Group(
         var_literal
-        + word("name")
+        + var_name("name")
         + lcurly
         + type_discrete_literal
         + lsquare
         + int_
         + rsquare
         + lcurly
-        + pp.delimitedList(word)("levels")
+        + pp.delimitedList(var_name)("levels")
         + rcurly
         + semicolon
         + rcurly
