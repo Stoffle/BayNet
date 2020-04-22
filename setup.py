@@ -25,6 +25,7 @@ setup(
             "pre-commit",
             "pydocstyle",
             "networkx",
+            "graphviz",
         ],
         "ci": ["pytest >= 3.3.2", "pytest-cov >= 2.6.0", "networkx"],
     },

@@ -339,3 +339,24 @@ def test_bif_parser():
     assert dag.nodes == alarm_dag.nodes
     assert dag.edges == alarm_dag.edges
     dag.sample(10)
+
+
+def test_plot(temp_out, test_dag):
+    img_path = temp_out / 'dag.png'
+    test_dag.plot(img_path)
+    assert img_path.exists()
+
+
+def test_compare(temp_out, test_dag):
+    img_path = temp_out / 'comparison.png'
+    dag2 = DAG()
+    dag2.add_vertices(list("ABCD"))
+    comparison_1 = test_dag.compare(dag2)
+    assert comparison_1.es['color'] == ['red'] * 3
+    assert comparison_1.es['style'] == ['dashed'] * 3
+    comparison_2 = dag2.compare(test_dag)
+    assert comparison_2.es['color'] == ['blue'] * 3
+    assert comparison_2.es['style'] == ['solid'] * 3
+
+    comparison_1.plot(img_path)
+    assert img_path.exists()

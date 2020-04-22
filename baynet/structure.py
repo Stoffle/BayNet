@@ -8,7 +8,7 @@ from copy import deepcopy
 import igraph
 import numpy as np
 import pandas as pd
-from baynet.utils import dag_io
+from baynet.utils import dag_io, visualisation
 
 from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
 
@@ -375,3 +375,18 @@ class DAG(igraph.Graph):
         for vertex in self_copy.vs:
             vertex["CPD"] = deepcopy(vertex["CPD"])
         return self_copy
+
+    def plot(self, path: Path = Path().resolve() / 'DAG.png') -> None:
+        """Save a plot of the DAG to specified file path."""
+        dag = self.copy()
+        dag.vs['label'] = dag.vs['name']
+        dag.vs['fontsize'] = 30
+        dag.vs['fontname'] = "Helvetica"
+        dag.es['color'] = "black"
+        dag.es['penwidth'] = 2
+        dag.es['style'] = "solid"
+        visualisation.draw_graph(dag, save_path=path)
+
+    def compare(self, other_graph: DAG) -> visualisation.GraphComparison:
+        """Produce comparison to another DAG for plotting."""
+        return visualisation.GraphComparison(self, other_graph, list(self.vs['name']))
