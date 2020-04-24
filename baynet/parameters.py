@@ -51,7 +51,7 @@ class ConditionalProbabilityTable:
             p_cgp = np.zeros(len(self.levels))
             p_cgp[sample[self.name]] = 1
             loss = p_cgp - self.array[tuple(sample[self.parents])]
-            self.array[tuple(sample[self.parents])] += loss
+            self.array[tuple(sample[self.parents])] += loss * 0.01
         self.rescale_probabilities()
 
     def mle_estimate(self, data: pd.DataFrame) -> None:
