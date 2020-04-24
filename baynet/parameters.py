@@ -42,17 +42,16 @@ class ConditionalProbabilityTable:
 
     def dfe_estimate(self, data: pd.DataFrame, iterations: int = 1000) -> None:
         """Predict parameters using DFE method."""
-        if not self.parents:
-            self.array[:] = data[self.name].value_counts().reindex(range(len(self.levels))).values
-            self.rescale_probabilities()
-            return
-        self.rescale_probabilities()
-        for i, sample in data.sample(n=iterations, replace=True).iterrows():
+        self.array[self.array.sum(axis=-1) == 0] = 1.0
+        self.array /= np.expand_dims(self.array.sum(axis=-1), axis=-1)
+        for _, sample in data.sample(n=iterations, replace=True).iterrows():
             p_cgp = np.zeros(len(self.levels))
             p_cgp[sample[self.name]] = 1
             loss = p_cgp - self.array[tuple(sample[self.parents])]
-            self.array[tuple(sample[self.parents])] += loss * 0.01
+            self.array[tuple(sample[self.parents])] += loss * 0.005
         self.rescale_probabilities()
+
+
 
     def mle_estimate(self, data: pd.DataFrame) -> None:
         """Predict parameters using the MLE method."""

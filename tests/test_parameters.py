@@ -47,10 +47,10 @@ def test_CPT_estimate_dfe(test_dag):
         {'A': [0, 0, 0, 0, 1, 1, 1, 1], 'B': [0, 1] * 4, 'C': [0] * 8, 'D': [1] * 8}
     )
     dag.estimate_parameters(data, method="dfe")
-    assert np.allclose(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
-    assert np.allclose(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2, rtol=0.1)
-    assert np.allclose(dag.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
-    assert np.allclose(dag.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
+    assert np.allclose(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0], atol=0.1)
+    assert np.allclose(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2, atol=0.1)
+    assert np.allclose(dag.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]], atol=0.1)
+    assert np.allclose(dag.vs[3]['CPD'].cumsum_array, [0.0, 1.0], atol=0.1)
 
 
 def test_CPT_estimate_other(test_dag):
