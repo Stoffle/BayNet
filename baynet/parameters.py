@@ -33,11 +33,26 @@ class ConditionalProbabilityTable:
         cls, vertex: igraph.Vertex, data: pd.DataFrame, method: str = "mle"
     ) -> "ConditionalProbabilityTable":
         """Create a CPT, populated with predicted parameters based on supplied data."""
-        if method != "mle":
-            raise NotImplementedError
         cpt = cls(vertex)
-        cpt.mle_estimate(data)
+        if method == "mle":
+            cpt.mle_estimate(data)
+        elif method == "dfe":
+            cpt.dfe_estimate(data)
         return cpt
+
+    def dfe_estimate(self, data: pd.DataFrame, iterations: int = 1000) -> None:
+        """Predict parameters using DFE method."""
+        if not self.parents:
+            self.array[:] = data[self.name].value_counts().reindex(range(len(self.levels))).values
+            self.rescale_probabilities()
+            return
+        self.rescale_probabilities()
+        for i, sample in data.sample(n=iterations, replace=True).iterrows():
+            p_cgp = np.zeros(len(self.levels))
+            p_cgp[sample[self.name]] = 1
+            loss = p_cgp - self.array[tuple(sample[self.parents])]
+            self.array[tuple(sample[self.parents])] += loss
+        self.rescale_probabilities()
 
     def mle_estimate(self, data: pd.DataFrame) -> None:
         """Predict parameters using the MLE method."""

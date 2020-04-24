@@ -40,6 +40,19 @@ def test_CPT_estimate_mle(test_dag):
     assert np.allclose(dag.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
 
 
+def test_CPT_estimate_dfe(test_dag):
+    dag = test_dag
+    dag.vs['levels'] = [["A", "B"] for v in dag.vs]
+    data = pd.DataFrame(
+        {'A': [0, 0, 0, 0, 1, 1, 1, 1], 'B': [0, 1] * 4, 'C': [0] * 8, 'D': [1] * 8}
+    )
+    dag.estimate_parameters(data, method="dfe")
+    assert np.allclose(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.allclose(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
+    assert np.allclose(dag.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
+    assert np.allclose(dag.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
+
+
 def test_CPT_estimate_other(test_dag):
     test_dag.vs['levels'] = [["A", "B"] for v in test_dag.vs]
     with pytest.raises(NotImplementedError):
