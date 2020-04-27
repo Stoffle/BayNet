@@ -62,10 +62,10 @@ def test_dfe_params(test_dag):
     dag.estimate_parameters(
         data, method="dfe", method_args={"iterations": 10, "learning_rate": 0.1}
     )
-    dag.vs[0]['CPD'].cumsum_array != np.zeros(dag.vs[0]['CPD'].cumsum_array.shape)
-    dag.vs[1]['CPD'].cumsum_array != np.zeros(dag.vs[1]['CPD'].cumsum_array.shape)
-    dag.vs[2]['CPD'].cumsum_array != np.zeros(dag.vs[2]['CPD'].cumsum_array.shape)
-    dag.vs[3]['CPD'].cumsum_array != np.zeros(dag.vs[3]['CPD'].cumsum_array.shape)
+    assert dag.vs[0]['CPD'].cumsum_array != np.zeros(dag.vs[0]['CPD'].cumsum_array.shape)
+    assert dag.vs[1]['CPD'].cumsum_array != np.zeros(dag.vs[1]['CPD'].cumsum_array.shape)
+    assert dag.vs[2]['CPD'].cumsum_array != np.zeros(dag.vs[2]['CPD'].cumsum_array.shape)
+    assert dag.vs[3]['CPD'].cumsum_array != np.zeros(dag.vs[3]['CPD'].cumsum_array.shape)
 
 
 def test_CPT_estimate_other(test_dag):
