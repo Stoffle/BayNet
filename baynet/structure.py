@@ -1,7 +1,7 @@
 """Graph object."""
 from __future__ import annotations
 from itertools import combinations
-from typing import List, Union, Tuple, Set, Any, Optional, Type
+from typing import List, Union, Tuple, Set, Any, Optional, Type, Dict
 from pathlib import Path
 from copy import deepcopy
 
@@ -290,7 +290,11 @@ class DAG(igraph.Graph):
             vertex["CPD"].sample_parameters(alpha=alpha, seed=seed)
 
     def estimate_parameters(
-        self, data: pd.DataFrame, method: str = "mle", infer_levels: bool = False
+        self,
+        data: pd.DataFrame,
+        method: str = "mle",
+        infer_levels: bool = False,
+        method_args: Optional[Dict[str, Union[int, float]]] = None,
     ) -> None:
         """Estimate conditional probabilities based on supplied data."""
         try:
@@ -303,7 +307,9 @@ class DAG(igraph.Graph):
             for vertex in self.vs:
                 vertex["levels"] = sorted(data[vertex["name"]].unique().astype(str))
         for vertex in self.vs:
-            vertex["CPD"] = ConditionalProbabilityTable.estimate(vertex, data=data, method=method)
+            vertex["CPD"] = ConditionalProbabilityTable.estimate(
+                vertex, data=data, method=method, method_args=method_args
+            )
 
     def sample(self, n_samples: int, seed: Optional[int] = None) -> pd.DataFrame:
         """Sample n_samples rows of data from the graph."""
