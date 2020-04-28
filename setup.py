@@ -14,7 +14,7 @@ setup(
     url="https://github.com/Stoffle/BayNet",
     packages=find_packages(exclude=("tests",)),
     python_requires=">=3.7",
-    install_requires=["python-igraph < 0.8.0", "numpy >= 1.17.2", "pandas >= 0.25", "protobuf"],
+    install_requires=["python-igraph < 0.8.0", "numpy >= 1.17.2", "pandas >= 0.25", "protobuf", "graphviz"],
     extras_require={
         "dev": [
             "black",
@@ -25,7 +25,6 @@ setup(
             "pre-commit",
             "pydocstyle",
             "networkx",
-            "graphviz",
         ],
         "ci": ["pytest >= 3.3.2", "pytest-cov >= 2.6.0", "networkx"],
     },
