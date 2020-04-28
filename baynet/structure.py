@@ -302,7 +302,9 @@ class DAG(igraph.Graph):
             if not all(type(dtype) == pd.CategoricalDtype for dtype in data.dtypes):
                 for vertex in self.vs:
                     cat_dtype = pd.CategoricalDtype(vertex['levels'], ordered=True)
-                    data[vertex['name']] = pd.Categorical.from_codes(codes=data[vertex['name']], dtype=cat_dtype)
+                    data[vertex['name']] = pd.Categorical.from_codes(
+                        codes=data[vertex['name']], dtype=cat_dtype
+                    )
         except KeyError:
             if not infer_levels:
                 raise ValueError(
@@ -312,10 +314,12 @@ class DAG(igraph.Graph):
                 self.vs['levels'] = [list(dtype.categories) for dtype in data.dtypes]
             else:
                 for vertex in self.vs:
-                    vertex_categories = list(range(data[vertex["name"]].max()+1))
+                    vertex_categories = list(range(data[vertex["name"]].max() + 1))
                     vertex['levels'] = vertex_categories
                     cat_dtype = pd.CategoricalDtype(vertex_categories, ordered=True)
-                    data[vertex['name']] = pd.Categorical.from_codes(codes=data[vertex['name']], dtype=cat_dtype)
+                    data[vertex['name']] = pd.Categorical.from_codes(
+                        codes=data[vertex['name']], dtype=cat_dtype
+                    )
         for vertex in self.vs:
             vertex["CPD"] = ConditionalProbabilityTable.estimate(
                 vertex, data=data, method=method, method_args=method_args

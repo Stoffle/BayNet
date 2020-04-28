@@ -175,4 +175,4 @@ if __name__ == "__main__":
     dag.vs['levels'] = [["B", "A"] for v in dag.vs]
     dag.generate_discrete_parameters()
     data = dag.sample(10)
-    x = data.groupby(["B", "C", "D"]).size()#.to_numpy().reshape((2,2,2))
+    x = data.groupby(["B", "C", "D"]).size()  # .to_numpy().reshape((2,2,2))

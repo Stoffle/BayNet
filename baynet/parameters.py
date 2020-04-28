@@ -54,7 +54,9 @@ class ConditionalProbabilityTable:
         """Predict parameters using DFE method."""
         self.array[self.array.sum(axis=-1) == 0] = 1.0
         self.array /= np.expand_dims(self.array.sum(axis=-1), axis=-1)
-        for _, sample in data.apply(lambda x: x.cat.codes).sample(n=iterations, replace=True).iterrows():
+        for _, sample in (
+            data.apply(lambda x: x.cat.codes).sample(n=iterations, replace=True).iterrows()
+        ):
             p_cgp = np.zeros(len(self.levels))
             p_cgp[sample[self.name]] = 1
             loss = p_cgp - self.array[tuple(sample[self.parents])]

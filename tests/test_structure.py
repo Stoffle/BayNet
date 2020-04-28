@@ -284,7 +284,9 @@ def test_DAG_estimate_parameters(test_dag):
     dag3_est = test_dag.copy()
     dag3_est.estimate_parameters(data3, infer_levels=True)
     for i in range(4):
-        assert np.allclose(dag3.vs[i]['CPD'].cumsum_array, dag3_est.vs[i]['CPD'].cumsum_array, atol=0.2)
+        assert np.allclose(
+            dag3.vs[i]['CPD'].cumsum_array, dag3_est.vs[i]['CPD'].cumsum_array, atol=0.2
+        )
 
 
 def test_DAG_sample_continuous(test_dag):
