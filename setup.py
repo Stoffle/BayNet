@@ -1,9 +1,46 @@
+import subprocess
+import platform
 from setuptools import setup, find_packages
+from setuptools.command.develop import develop
+from setuptools.command.install import install
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+
+def install_graphviz() -> None:
+    if str(platform.system()) == "Darwin":
+        subprocess.call("brew install graphviz", shell=True)
+    elif str(platform.system()) == "Linux":
+        subprocess.call(
+            "sudo apt -y install build-essential python-dev libxml2 libxml2-dev zlib1g-dev",
+            shell=True,
+        )
+        subprocess.call("sudo apt -y install python-pydot python-pydot-ng graphviz", shell=True)
+    else:
+        raise NotImplementedError(
+            f"We're really sorry, but {platform.system()} isn't a supported OS"
+        )
+
+
+class CustomInstallCommand(install):
+    """Custom install setup to help run shell commands (outside shell) before installation"""
+
+    def run(self) -> None:
+        install.run(self)
+        install_graphviz()
+
+
+class CustomDevelopCommand(develop):
+    """Custom install setup to help run shell commands (outside shell) before installation of dev"""
+
+    def run(self) -> None:
+        develop.run(self)
+        install_graphviz()
+
+
 setup(
+    cmdclass={"install": CustomInstallCommand, "develop": CustomDevelopCommand},
     name="BayNet",
     version="0.0.2-dev",
     author="Chris Robinson",
@@ -14,7 +51,13 @@ setup(
     url="https://github.com/Stoffle/BayNet",
     packages=find_packages(exclude=("tests",)),
     python_requires=">=3.7",
-    install_requires=["python-igraph < 0.8.0", "numpy >= 1.17.2", "pandas >= 0.25", "protobuf"],
+    install_requires=[
+        "python-igraph < 0.8.0",
+        "numpy >= 1.17.2",
+        "pandas >= 0.25",
+        "protobuf",
+        "graphviz",
+    ],
     extras_require={
         "dev": [
             "black",
