@@ -1,5 +1,5 @@
 """Parameter tables for Graph objects."""
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union, Dict
 from itertools import product
 import numpy as np
 import pandas as pd
@@ -30,14 +30,36 @@ class ConditionalProbabilityTable:
 
     @classmethod
     def estimate(
-        cls, vertex: igraph.Vertex, data: pd.DataFrame, method: str = "mle"
+        cls,
+        vertex: igraph.Vertex,
+        data: pd.DataFrame,
+        method: str = "mle",
+        method_args: Optional[Dict[str, Union[int, float]]] = None,
     ) -> "ConditionalProbabilityTable":
         """Create a CPT, populated with predicted parameters based on supplied data."""
-        if method != "mle":
-            raise NotImplementedError
         cpt = cls(vertex)
-        cpt.mle_estimate(data)
+        if not method_args:
+            method_args = {}
+        if method == "mle":
+            cpt.mle_estimate(data)
+        elif method == "dfe":
+            cpt.dfe_estimate(data, **method_args)  # type: ignore
+        else:
+            raise NotImplementedError(f"Parameter Estimation method {method} not implemented.")
         return cpt
+
+    def dfe_estimate(
+        self, data: pd.DataFrame, iterations: int = 250, learning_rate: float = 0.01
+    ) -> None:
+        """Predict parameters using DFE method."""
+        self.array[self.array.sum(axis=-1) == 0] = 1.0
+        self.array /= np.expand_dims(self.array.sum(axis=-1), axis=-1)
+        for _, sample in data.sample(n=iterations, replace=True).iterrows():
+            p_cgp = np.zeros(len(self.levels))
+            p_cgp[sample[self.name]] = 1
+            loss = p_cgp - self.array[tuple(sample[self.parents])]
+            self.array[tuple(sample[self.parents])] += loss * learning_rate
+        self.rescale_probabilities()
 
     def mle_estimate(self, data: pd.DataFrame) -> None:
         """Predict parameters using the MLE method."""
