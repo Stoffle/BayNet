@@ -168,11 +168,3 @@ def test_cpd_sample(test_dag):
     assert np.allclose(
         cpd_no_parents.sample(pd.DataFrame(np.ones((10, 4)), columns=list("ABCD"))), 0
     )
-
-
-if __name__ == "__main__":
-    dag = DAG.from_modelstring("[A][B|C:D][C|D][D]")
-    dag.vs['levels'] = [["B", "A"] for v in dag.vs]
-    dag.generate_discrete_parameters()
-    data = dag.sample(10)
-    x = data.groupby(["B", "C", "D"]).size()  # .to_numpy().reshape((2,2,2))
