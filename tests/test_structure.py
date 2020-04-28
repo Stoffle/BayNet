@@ -339,3 +339,12 @@ def test_bif_parser():
     assert dag.nodes == alarm_dag.nodes
     assert dag.edges == alarm_dag.edges
     dag.sample(10)
+
+
+def test_cpdag_fromdag(test_dag):
+    dag = test_dag
+    cp_dag = dag.to_cpdag()
+    assert cp_dag.nodes == dag.nodes
+    assert len(cp_dag.directed_edges) == 0
+    print(list(dag.nodes))
+    print(dag.edge_disjoint_paths(source=3, target=1))

@@ -381,3 +381,15 @@ class DAG(igraph.Graph):
         for vertex in self_copy.vs:
             vertex["CPD"] = deepcopy(vertex["CPD"])
         return self_copy
+
+    def to_cpdag(self) -> CPDAG:
+        return CPDAG.from_dag(self)
+
+
+class CPDAG(DAG):
+    @classmethod
+    def from_dag(cls, dag: DAG) -> CPDAG:
+        cpdag = cls()
+        cpdag.add_vertices(_nodes_from_modelstring(dag.get_modelstring()))
+        cpdag = cpdag.as_undirected()
+        return cpdag
