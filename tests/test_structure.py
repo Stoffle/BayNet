@@ -261,21 +261,32 @@ def test_DAG_estimate_parameters(test_dag):
     data = pd.DataFrame(
         {'A': [0, 0, 0, 0, 1, 1, 1, 1], 'B': [0, 1] * 4, 'C': [0] * 8, 'D': [1] * 8}
     )
+    data2 = data.copy()
     with pytest.raises(ValueError):
         dag.estimate_parameters(data, method="mle")
     dag.estimate_parameters(data, method="mle", infer_levels=True)
     assert np.allclose(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
     assert np.allclose(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
     assert np.allclose(dag.vs[2]['CPD'].cumsum_array, 1.0)
-    assert np.allclose(dag.vs[3]['CPD'].cumsum_array, 1.0)
+    assert np.allclose(dag.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
 
     dag2 = test_dag.copy()
     dag2.vs['levels'] = [["A", "B"] for v in dag.vs]
-    dag2.estimate_parameters(data, method="mle")
+    dag2.estimate_parameters(data2, method="mle")
     assert np.allclose(dag2.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
     assert np.allclose(dag2.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
     assert np.allclose(dag2.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
     assert np.allclose(dag2.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
+
+    dag3 = test_dag.copy()
+    dag3.generate_discrete_parameters(seed=1)
+    data3 = dag3.sample(100, seed=1)
+    dag3_est = test_dag.copy()
+    dag3_est.estimate_parameters(data3, infer_levels=True)
+    for i in range(4):
+        assert np.allclose(
+            dag3.vs[i]['CPD'].cumsum_array, dag3_est.vs[i]['CPD'].cumsum_array, atol=0.2
+        )
 
 
 def test_DAG_sample_continuous(test_dag):

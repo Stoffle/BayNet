@@ -54,7 +54,9 @@ class ConditionalProbabilityTable:
         """Predict parameters using DFE method."""
         self.array[self.array.sum(axis=-1) == 0] = 1.0
         self.array /= np.expand_dims(self.array.sum(axis=-1), axis=-1)
-        for _, sample in data.sample(n=iterations, replace=True).iterrows():
+        for _, sample in (
+            data.apply(lambda x: x.cat.codes).sample(n=iterations, replace=True).iterrows()
+        ):
             p_cgp = np.zeros(len(self.levels))
             p_cgp[sample[self.name]] = 1
             loss = p_cgp - self.array[tuple(sample[self.parents])]
@@ -63,24 +65,9 @@ class ConditionalProbabilityTable:
 
     def mle_estimate(self, data: pd.DataFrame) -> None:
         """Predict parameters using the MLE method."""
-        if not self.parents:
-            self.array[:] = data[self.name].value_counts().reindex(range(len(self.levels))).values
-            self.rescale_probabilities()
-            return
-        parent_options = [list(range(levels)) for levels in self.array.shape[:-1]]
-        for parent_combination in product(*parent_options):
-            matches = [data[parent] == val for parent, val in zip(self.parents, parent_combination)]
-            if len(matches) == 1:
-                matching_rows = matches[0]
-            else:
-                matching_rows = pd.concat(matches, axis=1).apply(np.all, axis=1)
-            totals = (
-                data[matching_rows][self.name]
-                .value_counts()
-                .reindex(range(len(self.levels)))
-                .values
-            )
-            self.array[tuple(parent_combination)] = totals
+        matches = data.apply(lambda x: x.cat.codes).groupby([*self.parents, self.name]).size()
+        for indexer, count in matches.iteritems():
+            self.array[indexer] = count
         self.rescale_probabilities()
 
     def rescale_probabilities(self) -> None:
