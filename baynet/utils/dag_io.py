@@ -23,7 +23,7 @@ def dag_to_buf(dag: "baynet.DAG") -> bytes:
         if vertex["CPD"] is not None:
             if isinstance(vertex["CPD"], ConditionalProbabilityTable):
                 node.variable_type = DAG_pb2.NodeType.DISCRETE
-                node.levels.extend(vertex["levels"])
+                node.levels.extend([str(level) for level in vertex["levels"]])
             elif isinstance(vertex["CPD"], ConditionalProbabilityDistribution):
                 node.variable_type = DAG_pb2.NodeType.CONTINUOUS
             node.cpd_array.shape.extend(vertex["CPD"].array.shape)
