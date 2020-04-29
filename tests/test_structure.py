@@ -203,7 +203,7 @@ def test_DAG_get_v_structures(test_dag, reversed_dag, partial_dag):
     assert reversed_dag.get_v_structures(True) == {("B", "D", "C")}
 
 
-def test_DAG_yaml_continuous_file(temp_out, test_dag):
+def test_DAG_serialise_continuous_file(temp_out, test_dag):
     dag_path = temp_out / 'cont.pb'
     dag = test_dag
     dag.generate_continuous_parameters()
@@ -213,7 +213,7 @@ def test_DAG_yaml_continuous_file(temp_out, test_dag):
     assert dag.edges == dag2.edges
 
 
-def test_DAG_yaml_continuous_str(test_dag):
+def test_DAG_serialise_continuous_str(test_dag):
     dag = test_dag
     dag.generate_continuous_parameters()
     dag_string = dag.save()
@@ -222,7 +222,7 @@ def test_DAG_yaml_continuous_str(test_dag):
     assert dag.edges == dag2.edges
 
 
-def test_DAG_yaml_discrete_file(temp_out, test_dag):
+def test_DAG_serialise_discrete_file(temp_out, test_dag):
     dag_path = temp_out / 'cont.pb'
     dag = test_dag
     dag.generate_discrete_parameters(seed=0)
@@ -232,7 +232,7 @@ def test_DAG_yaml_discrete_file(temp_out, test_dag):
     assert dag.edges == dag2.edges
 
 
-def test_DAG_yaml_discrete_str(test_dag):
+def test_DAG_serialise_discrete_str(test_dag):
     dag = test_dag
     dag.generate_discrete_parameters(seed=0)
     dag_string = dag.save()
@@ -397,10 +397,23 @@ def test_Graph():
 
 
 def test_pickling(test_dag):
-    dump = pickle.dumps(test_dag)
-    dag = pickle.loads(dump)
-    assert dag.edges == test_dag.edges
-    assert dag.nodes == test_dag.nodes
+    dag = test_dag.copy()
+    dag.generate_discrete_parameters()
+    dump = pickle.dumps(dag)
+    loaded_dag = pickle.loads(dump)
+    assert loaded_dag.edges == dag.edges
+    assert loaded_dag.nodes == dag.nodes
+    for i in range(4):
+        assert np.array_equal(loaded_dag.vs[i]['CPD'].array, dag.vs[i]['CPD'].array)
+
+    learnt_dag = test_dag.copy()
+    learnt_dag.estimate_parameters(dag.sample(100), infer_levels=True)
+    learnt_dag_dump = pickle.dumps(learnt_dag)
+    loaded_learnt_dag = pickle.loads(learnt_dag_dump)
+
+    for i in range(4):
+        assert np.array_equal(loaded_learnt_dag.vs[i]['CPD'].array, learnt_dag.vs[i]['CPD'].array)
+
 
 
 def test_bif_parser():
