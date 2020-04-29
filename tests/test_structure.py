@@ -257,46 +257,80 @@ def test_DAG_generate_parameters(test_dag):
 
 
 def test_DAG_estimate_parameters(test_dag):
-    dag = test_dag.copy()
     data = pd.DataFrame(
         {'A': [0, 0, 0, 0, 1, 1, 1, 1], 'B': [0, 1] * 4, 'C': [0] * 8, 'D': [1] * 8}
     )
     data2 = data.copy()
     data3 = data.astype(str)
+
+    dag = test_dag.copy()
     with pytest.raises(ValueError):
         dag.estimate_parameters(data, method="mle")
-    dag.estimate_parameters(data, method="mle", infer_levels=True)
-    assert np.allclose(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
-    assert np.allclose(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
-    assert np.allclose(dag.vs[2]['CPD'].cumsum_array, 1.0)
-    assert np.allclose(dag.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
+    dag.vs['levels'] = [[0, 1] for v in dag.vs]
+    dag.estimate_parameters(data, method="mle")
+    assert np.array_equal(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.array_equal(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
+    assert np.array_equal(dag.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
+    assert np.array_equal(dag.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
 
     dag2 = test_dag.copy()
     dag2.vs['levels'] = [["A", "B"] for v in dag.vs]
     dag2.estimate_parameters(data2, method="mle")
-    assert np.allclose(dag2.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
-    assert np.allclose(dag2.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
-    breakpoint()
-    assert np.allclose(dag2.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
-    assert np.allclose(dag2.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
+    assert np.array_equal(dag2.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.array_equal(dag2.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
+    assert np.array_equal(dag2.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
+    assert np.array_equal(dag2.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
 
     dag3 = test_dag.copy()
     dag3.vs['levels'] = [["0", "1"] for v in dag.vs]
     dag3.estimate_parameters(data3, method="mle")
-    assert np.allclose(dag3.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
-    assert np.allclose(dag3.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
-    assert np.allclose(dag3.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
-    assert np.allclose(dag3.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
+    assert np.array_equal(dag3.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.array_equal(dag3.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
+    assert np.array_equal(dag3.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
+    assert np.array_equal(dag3.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
 
-
-    dag4 = test_dag.copy()
-    dag4.generate_discrete_parameters(seed=1)
-    data4 = dag4.sample(100, seed=1)
+    dag3 = test_dag.copy()
+    dag3.generate_discrete_parameters(seed=1)
+    data4 = dag3.sample(100, seed=1)
     dag4_est = test_dag.copy()
-    dag4_est.estimate_parameters(data4, infer_levels=True)
+    dag4_est.vs['levels'] = dag3.vs['levels']
+    dag4_est.estimate_parameters(data4)
     for i in range(4):
         assert np.allclose(
-            dag4.vs[i]['CPD'].cumsum_array, dag4_est.vs[i]['CPD'].cumsum_array, atol=0.2
+            dag3.vs[i]['CPD'].cumsum_array, dag4_est.vs[i]['CPD'].cumsum_array, atol=0.2
+        )
+
+
+def test_DAG_estimate_parameters_infer(test_dag):
+    data = pd.DataFrame(
+        {'A': [0, 0, 0, 0, 1, 1, 1, 1], 'B': [0, 1] * 4, 'C': [0] * 8, 'D': [1] * 8}
+    )
+    data2 = data.astype(str)
+
+    dag = test_dag.copy()
+    with pytest.raises(ValueError):
+        dag.estimate_parameters(data.astype(bool), method="mle", infer_levels=True)
+    dag.estimate_parameters(data, method="mle", infer_levels=True)
+    assert np.array_equal(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.array_equal(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2])
+    assert np.array_equal(dag.vs[2]['CPD'].cumsum_array, [[1.0]] * 2)
+    assert np.array_equal(dag.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
+
+    dag2 = test_dag.copy()
+    dag2.estimate_parameters(data2, method="mle", infer_levels=True)
+    assert np.array_equal(dag2.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.array_equal(dag2.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]]])
+    assert np.array_equal(dag2.vs[2]['CPD'].cumsum_array, [[1.0]])
+    assert np.array_equal(dag2.vs[3]['CPD'].cumsum_array, [1.0])
+
+    dag3 = test_dag.copy()
+    dag3.generate_discrete_parameters(seed=1)
+    data4 = dag3.sample(100, seed=1)
+    dag3_est = test_dag.copy()
+    dag3_est.estimate_parameters(data4, infer_levels=True)
+    for i in range(4):
+        assert np.allclose(
+            dag3.vs[i]['CPD'].cumsum_array, dag3_est.vs[i]['CPD'].cumsum_array, atol=0.2
         )
 
 

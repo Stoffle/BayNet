@@ -1,6 +1,5 @@
 """Parameter tables for Graph objects."""
 from typing import List, Tuple, Optional, Union, Dict
-from itertools import product
 import numpy as np
 import pandas as pd
 import igraph
