@@ -51,8 +51,7 @@ class ConditionalProbabilityTable:
         self, data: pd.DataFrame, iterations: int = 250, learning_rate: float = 0.01
     ) -> None:
         """Predict parameters using DFE method."""
-        self.array[self.array.sum(axis=-1) == 0] = 1.0
-        self.array /= np.expand_dims(self.array.sum(axis=-1), axis=-1)
+        self.rescale_probabilities()
         for _, sample in (
             data.apply(lambda x: x.cat.codes).sample(n=iterations, replace=True).iterrows()
         ):
@@ -78,12 +77,13 @@ class ConditionalProbabilityTable:
         to make sampling faster.
         """
         # Anywhere with sum(probs) == 0, we set to all 1 prior to scaling
-        self.cumsum_array = self.array.astype(float)
-        self.cumsum_array[self.cumsum_array.sum(axis=-1) == 0] = 1.0
-        self.cumsum_array = np.nan_to_num(self.cumsum_array, nan=1e-8, posinf=1.0 - 1e-8)
+        self.array[self.array.sum(axis=-1) == 0] = 1.0
+        self.array = np.nan_to_num(self.array, nan=1e-8, posinf=1.0 - 1e-8)
         # Rescale probabilities to sum to 1
-        self.cumsum_array /= np.expand_dims(self.cumsum_array.sum(axis=-1), axis=-1)
-        self.cumsum_array = self.cumsum_array.cumsum(axis=-1)
+        self.array[self.array.sum(axis=-1) == 0] = 1.0
+        self.array /= np.expand_dims(self.array.sum(axis=-1), axis=-1)
+        self.array /= np.expand_dims(self.array.sum(axis=-1), axis=-1)
+        self.cumsum_array = self.array.cumsum(axis=-1)
 
     def sample(self, incomplete_data: pd.DataFrame) -> pd.DataFrame:
         """Sample based on parent values."""
