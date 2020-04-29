@@ -298,7 +298,8 @@ class DAG(igraph.Graph):
     ) -> None:
         """Estimate conditional probabilities based on supplied data."""
         try:
-            self.vs["levels"]
+            if all(vertex["levels"] is None for vertex in self.vs):
+                raise KeyError
         except KeyError:
             if not infer_levels:
                 raise ValueError(
