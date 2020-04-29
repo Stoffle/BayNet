@@ -263,6 +263,14 @@ def test_DAG_estimate_parameters(test_dag):
     )
     with pytest.raises(ValueError):
         dag.estimate_parameters(data, method="mle")
+    with pytest.raises(ValueError):
+        dag_empty_levels = dag.copy()
+        dag_empty_levels.vs['levels'] = [[]] * 4
+        dag_empty_levels.estimate_parameters(data, method="mle")
+    with pytest.raises(ValueError):
+        dag_None_levels = dag.copy()
+        dag_None_levels.vs['levels'] = None
+        dag_None_levels.estimate_parameters(data, method="mle")
     dag.estimate_parameters(data, method="mle", infer_levels=True)
     assert np.allclose(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
     assert np.allclose(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
