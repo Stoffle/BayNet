@@ -297,14 +297,21 @@ class DAG(igraph.Graph):
         method_args: Optional[Dict[str, Union[int, float]]] = None,
     ) -> None:
         """Estimate conditional probabilities based on supplied data."""
+        data = data.copy()
         try:
-            self.vs["levels"]
-            if not all(type(dtype) == pd.CategoricalDtype for dtype in data.dtypes):
+            if all(vertex['level'] == None for vertex in self.vs):
+                raise KeyError
+            if not all(isintance(dtype, pd.CategoricalDtype) for dtype in data.dtypes):
                 for vertex in self.vs:
-                    cat_dtype = pd.CategoricalDtype(vertex['levels'], ordered=True)
-                    data[vertex['name']] = pd.Categorical.from_codes(
-                        codes=data[vertex['name']], dtype=cat_dtype
-                    )
+                    if isinstance(data[vertex['name']].dtype, np.int):
+                        cat_dtype = pd.CategoricalDtype(vertex['levels'], ordered=True)
+                        data[vertex['name']] = pd.Categorical.from_codes(
+                            codes=data[vertex['name']], dtype=cat_dtype
+                        )
+                    else:
+                        column = pd.Categorical(data[vertex['name']])
+                        column.set_categories(vertex['levels'])
+                        data[vertex['name']] = column
         except KeyError:
             if not infer_levels:
                 raise ValueError(
@@ -312,6 +319,8 @@ class DAG(igraph.Graph):
                 )
             if all(type(dtype) == pd.CategoricalDtype for dtype in data.dtypes):
                 self.vs['levels'] = [list(dtype.categories) for dtype in data.dtypes]
+            elif all(dtype == np.dtype('O') for dtype in data.dtypes):
+                self.vs['levels'] = [sorted(data[vertex["name"]].unique()) for vertex in self.vs]
             else:
                 for vertex in self.vs:
                     vertex_categories = list(range(data[vertex["name"]].max() + 1))
