@@ -415,7 +415,6 @@ def test_pickling(test_dag):
         assert np.array_equal(loaded_learnt_dag.vs[i]['CPD'].array, learnt_dag.vs[i]['CPD'].array)
 
 
-
 def test_bif_parser():
     bif_path = Path(__file__).parent / 'earthquake.bif'
 
