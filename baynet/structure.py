@@ -297,16 +297,18 @@ class DAG(igraph.Graph):
         method_args: Optional[Dict[str, Union[int, float]]] = None,
     ) -> None:
         """Estimate conditional probabilities based on supplied data."""
-        try:
-            if all(vertex["levels"] is None for vertex in self.vs):
-                raise KeyError
-        except KeyError:
-            if not infer_levels:
-                raise ValueError(
-                    "`estimate_parameters()` requires levels be defined or `infer_levels=True`"
-                )
+        if infer_levels:
             for vertex in self.vs:
                 vertex["levels"] = sorted(data[vertex["name"]].unique().astype(str))
+        else:
+            try:
+                if not all(vertex["levels"] for vertex in self.vs):
+                    raise KeyError
+            except KeyError:
+                if not infer_levels:
+                    raise ValueError(
+                        "`estimate_parameters()` requires levels be defined or `infer_levels=True`"
+                    )
         for vertex in self.vs:
             vertex["CPD"] = ConditionalProbabilityTable.estimate(
                 vertex, data=data, method=method, method_args=method_args
