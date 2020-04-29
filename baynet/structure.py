@@ -304,19 +304,15 @@ class DAG(igraph.Graph):
                 self.vs['levels'] = [list(dtype.categories) for dtype in data.dtypes]
             else:
                 for vertex in self.vs:
-                    if is_integer_dtype(data[vertex["name"]]):
-                        vertex_categories = list(range(data[vertex["name"]].max() + 1))
-                        cat_dtype = pd.CategoricalDtype(vertex_categories, ordered=True)
-                        column = pd.Categorical.from_codes(
-                            codes=data[vertex['name']], dtype=cat_dtype
-                        )
-                    elif is_string_dtype(data[vertex["name"]]):
-                        vertex_categories = sorted(data[vertex["name"]].unique())
-                        column = pd.Categorical(data[vertex['name']], categories=vertex_categories)
-                    else:
+                    if not (
+                        is_integer_dtype(data[vertex["name"]])
+                        or is_string_dtype(data[vertex["name"]])
+                    ):
                         raise ValueError(
                             f"Unrecognised DataFrame dtype: {data[vertex['name']].dtype}"
                         )
+                    vertex_categories = sorted(data[vertex["name"]].unique())
+                    column = pd.Categorical(data[vertex['name']], categories=vertex_categories)
                     vertex['levels'] = vertex_categories
                     data[vertex['name']] = column
         else:
