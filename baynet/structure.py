@@ -298,25 +298,7 @@ class DAG(igraph.Graph):
     ) -> None:
         """Estimate conditional probabilities based on supplied data."""
         data = data.copy()
-        try:
-            if all(vertex['level'] == None for vertex in self.vs):
-                raise KeyError
-            if not all(isintance(dtype, pd.CategoricalDtype) for dtype in data.dtypes):
-                for vertex in self.vs:
-                    if isinstance(data[vertex['name']].dtype, np.int):
-                        cat_dtype = pd.CategoricalDtype(vertex['levels'], ordered=True)
-                        data[vertex['name']] = pd.Categorical.from_codes(
-                            codes=data[vertex['name']], dtype=cat_dtype
-                        )
-                    else:
-                        column = pd.Categorical(data[vertex['name']])
-                        column.set_categories(vertex['levels'])
-                        data[vertex['name']] = column
-        except KeyError:
-            if not infer_levels:
-                raise ValueError(
-                    "`estimate_parameters()` requires levels be defined or `infer_levels=True`"
-                )
+        if infer_levels:
             if all(type(dtype) == pd.CategoricalDtype for dtype in data.dtypes):
                 self.vs['levels'] = [list(dtype.categories) for dtype in data.dtypes]
             elif all(dtype == np.dtype('O') for dtype in data.dtypes):
@@ -329,6 +311,22 @@ class DAG(igraph.Graph):
                     data[vertex['name']] = pd.Categorical.from_codes(
                         codes=data[vertex['name']], dtype=cat_dtype
                     )
+        else:
+            try:
+                if not all(isinstance(dtype, pd.CategoricalDtype) for dtype in data.dtypes):
+                    for vertex in self.vs:
+                        if isinstance(data[vertex['name']].dtype, np.int):
+                            cat_dtype = pd.CategoricalDtype(vertex['levels'], ordered=True)
+                            data[vertex['name']] = pd.Categorical.from_codes(
+                                codes=data[vertex['name']], dtype=cat_dtype
+                            )
+                        else:
+                            column = pd.Categorical(data[vertex['name']])
+                            column.set_categories(vertex['levels'])
+                            data[vertex['name']] = column
+            except:
+                raise ValueError("Vertex levels should be set, or use infer_levels=True")
+            
         for vertex in self.vs:
             vertex["CPD"] = ConditionalProbabilityTable.estimate(
                 vertex, data=data, method=method, method_args=method_args
