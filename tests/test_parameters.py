@@ -76,6 +76,7 @@ def test_CPT_rescale(test_dag):
         # Check cumsum is working properly
         for i in range(len(cpt.levels)):
             assert np.allclose(cpt.cumsum_array[:, :, i], (i + 1) / len(cpt.levels))
+            assert np.allclose(cpt.array[:, :, i], np.ones(len(cpt.levels)) / len(cpt.levels))
     cpt.array = np.random.uniform(size=(3, 3, 3))
     cpt.rescale_probabilities()
     for i in range(3):

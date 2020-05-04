@@ -52,8 +52,7 @@ class ConditionalProbabilityTable:
         self, data: pd.DataFrame, iterations: int = 250, learning_rate: float = 0.01
     ) -> None:
         """Predict parameters using DFE method."""
-        self.array[self.array.sum(axis=-1) == 0] = 1.0
-        self.array /= np.expand_dims(self.array.sum(axis=-1), axis=-1)
+        self.rescale_probabilities()
         for _, sample in data.sample(n=iterations, replace=True).iterrows():
             p_cgp = np.zeros(len(self.levels))
             p_cgp[sample[self.name]] = 1
@@ -98,6 +97,12 @@ class ConditionalProbabilityTable:
         # Rescale probabilities to sum to 1
         self.cumsum_array /= np.expand_dims(self.cumsum_array.sum(axis=-1), axis=-1)
         self.cumsum_array = self.cumsum_array.cumsum(axis=-1)
+        # Rescale array
+        array = self.array.copy()
+        array[array.sum(axis=-1) == 0] = 1.0
+        array = np.nan_to_num(array, nan=1e-8, posinf=1.0 - 1e-8)
+        array /= np.expand_dims(array.sum(axis=-1), axis=-1)
+        self.array = array
 
     def sample(self, incomplete_data: pd.DataFrame) -> pd.DataFrame:
         """Sample based on parent values."""
