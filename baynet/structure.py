@@ -8,6 +8,7 @@ from copy import deepcopy
 import igraph
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_string_dtype, is_integer_dtype, is_categorical_dtype
 from baynet.utils import dag_io, visualisation
 
 from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
@@ -297,18 +298,41 @@ class DAG(igraph.Graph):
         method_args: Optional[Dict[str, Union[int, float]]] = None,
     ) -> None:
         """Estimate conditional probabilities based on supplied data."""
+        data = data.copy()
         if infer_levels:
-            for vertex in self.vs:
-                vertex["levels"] = sorted(data[vertex["name"]].unique().astype(str))
+            if all(is_categorical_dtype(data[col]) for col in data.columns):
+                self.vs['levels'] = [list(dtype.categories) for dtype in data.dtypes]
+            else:
+                for vertex in self.vs:
+                    if not (
+                        is_integer_dtype(data[vertex["name"]])
+                        or is_string_dtype(data[vertex["name"]])
+                    ):
+                        raise ValueError(
+                            f"Unrecognised DataFrame dtype: {data[vertex['name']].dtype}"
+                        )
+                    vertex_categories = sorted(data[vertex["name"]].unique())
+                    column = pd.Categorical(data[vertex['name']], categories=vertex_categories)
+                    vertex['levels'] = vertex_categories
+                    data[vertex['name']] = column
         else:
             try:
-                if not all(vertex["levels"] for vertex in self.vs):
-                    raise KeyError
+                if not all(isinstance(dtype, pd.CategoricalDtype) for dtype in data.dtypes):
+                    for vertex in self.vs:
+                        if is_integer_dtype(data[vertex["name"]]):
+                            cat_dtype = pd.CategoricalDtype(vertex['levels'], ordered=True)
+                            data[vertex['name']] = pd.Categorical.from_codes(
+                                codes=data[vertex['name']], dtype=cat_dtype
+                            )
+                        elif is_string_dtype(data[vertex["name"]]):
+                            data[vertex['name']] = pd.Categorical(
+                                data[vertex['name']], categories=vertex['levels']
+                            )
             except KeyError:
-                if not infer_levels:
-                    raise ValueError(
-                        "`estimate_parameters()` requires levels be defined or `infer_levels=True`"
-                    )
+                raise ValueError(
+                    "`estimate_parameters()` requires levels be defined or `infer_levels=True`"
+                )
+
         for vertex in self.vs:
             vertex["CPD"] = ConditionalProbabilityTable.estimate(
                 vertex, data=data, method=method, method_args=method_args

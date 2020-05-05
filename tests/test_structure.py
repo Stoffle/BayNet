@@ -203,7 +203,7 @@ def test_DAG_get_v_structures(test_dag, reversed_dag, partial_dag):
     assert reversed_dag.get_v_structures(True) == {("B", "D", "C")}
 
 
-def test_DAG_yaml_continuous_file(temp_out, test_dag):
+def test_DAG_serialise_continuous_file(temp_out, test_dag):
     dag_path = temp_out / 'cont.pb'
     dag = test_dag
     dag.generate_continuous_parameters()
@@ -213,7 +213,7 @@ def test_DAG_yaml_continuous_file(temp_out, test_dag):
     assert dag.edges == dag2.edges
 
 
-def test_DAG_yaml_continuous_str(test_dag):
+def test_DAG_serialise_continuous_str(test_dag):
     dag = test_dag
     dag.generate_continuous_parameters()
     dag_string = dag.save()
@@ -222,7 +222,7 @@ def test_DAG_yaml_continuous_str(test_dag):
     assert dag.edges == dag2.edges
 
 
-def test_DAG_yaml_discrete_file(temp_out, test_dag):
+def test_DAG_serialise_discrete_file(temp_out, test_dag):
     dag_path = temp_out / 'cont.pb'
     dag = test_dag
     dag.generate_discrete_parameters(seed=0)
@@ -232,7 +232,7 @@ def test_DAG_yaml_discrete_file(temp_out, test_dag):
     assert dag.edges == dag2.edges
 
 
-def test_DAG_yaml_discrete_str(test_dag):
+def test_DAG_serialise_discrete_str(test_dag):
     dag = test_dag
     dag.generate_discrete_parameters(seed=0)
     dag_string = dag.save()
@@ -257,33 +257,99 @@ def test_DAG_generate_parameters(test_dag):
 
 
 def test_DAG_estimate_parameters(test_dag):
-    dag = test_dag.copy()
     data = pd.DataFrame(
         {'A': [0, 0, 0, 0, 1, 1, 1, 1], 'B': [0, 1] * 4, 'C': [0] * 8, 'D': [1] * 8}
     )
+    data2 = data.copy()
+    data3 = data.astype(str)
+
+    dag = test_dag.copy()
     with pytest.raises(ValueError):
         dag.estimate_parameters(data, method="mle")
-    with pytest.raises(ValueError):
-        dag_empty_levels = dag.copy()
-        dag_empty_levels.vs['levels'] = [[]] * 4
-        dag_empty_levels.estimate_parameters(data, method="mle")
-    with pytest.raises(ValueError):
-        dag_None_levels = dag.copy()
-        dag_None_levels.vs['levels'] = None
-        dag_None_levels.estimate_parameters(data, method="mle")
-    dag.estimate_parameters(data, method="mle", infer_levels=True)
-    assert np.allclose(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
-    assert np.allclose(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
-    assert np.allclose(dag.vs[2]['CPD'].cumsum_array, 1.0)
-    assert np.allclose(dag.vs[3]['CPD'].cumsum_array, 1.0)
+    dag.vs['levels'] = [[0, 1] for v in dag.vs]
+    dag.estimate_parameters(data, method="mle")
+    assert np.array_equal(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.array_equal(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
+    assert np.array_equal(dag.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
+    assert np.array_equal(dag.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
 
     dag2 = test_dag.copy()
     dag2.vs['levels'] = [["A", "B"] for v in dag.vs]
-    dag2.estimate_parameters(data, method="mle")
-    assert np.allclose(dag2.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
-    assert np.allclose(dag2.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
-    assert np.allclose(dag2.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
-    assert np.allclose(dag2.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
+    dag2.estimate_parameters(data2, method="mle")
+    assert np.array_equal(dag2.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.array_equal(dag2.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
+    assert np.array_equal(dag2.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
+    assert np.array_equal(dag2.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
+
+    dag3 = test_dag.copy()
+    dag3.vs['levels'] = [["0", "1"] for v in dag.vs]
+    dag3.estimate_parameters(data3, method="mle")
+    assert np.array_equal(dag3.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.array_equal(dag3.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
+    assert np.array_equal(dag3.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
+    assert np.array_equal(dag3.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
+
+    dag3 = test_dag.copy()
+    dag3.generate_discrete_parameters(seed=1)
+    data4 = dag3.sample(100, seed=1)
+    dag4_est = test_dag.copy()
+    dag4_est.vs['levels'] = dag3.vs['levels']
+    dag4_est.estimate_parameters(data4)
+    for i in range(4):
+        assert np.allclose(
+            dag3.vs[i]['CPD'].cumsum_array, dag4_est.vs[i]['CPD'].cumsum_array, atol=0.2
+        )
+
+
+def test_DAG_estimate_parameters_infer(test_dag):
+    data = pd.DataFrame(
+        {'A': [0, 0, 0, 0, 1, 1, 1, 1], 'B': [0, 1] * 4, 'C': [0] * 8, 'D': [1] * 8}
+    )
+    data2 = data.astype(str)
+
+    dag = test_dag.copy()
+    with pytest.raises(ValueError):
+        dag.estimate_parameters(data.astype(bool), method="mle", infer_levels=True)
+    dag.estimate_parameters(data, method="mle", infer_levels=True)
+    assert np.array_equal(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.array_equal(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]]])
+    assert np.array_equal(dag.vs[2]['CPD'].cumsum_array, [[1.0]])
+    assert np.array_equal(dag.vs[3]['CPD'].cumsum_array, [1.0])
+
+    dag2 = test_dag.copy()
+    dag2.estimate_parameters(data2, method="mle", infer_levels=True)
+    assert np.array_equal(dag2.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
+    assert np.array_equal(dag2.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]]])
+    assert np.array_equal(dag2.vs[2]['CPD'].cumsum_array, [[1.0]])
+    assert np.array_equal(dag2.vs[3]['CPD'].cumsum_array, [1.0])
+
+    dag3 = test_dag.copy()
+    dag3.generate_discrete_parameters(seed=1)
+    data4 = dag3.sample(100, seed=1)
+    dag3_est = test_dag.copy()
+    dag3_est.estimate_parameters(data4, infer_levels=True)
+    for i in range(4):
+        assert np.allclose(
+            dag3.vs[i]['CPD'].cumsum_array, dag3_est.vs[i]['CPD'].cumsum_array, atol=0.2
+        )
+
+
+def test_DAG_estimate_parameters_sampled_data(test_dag, temp_out):
+    dag = test_dag.copy()
+    dag.vs['levels'] = [[5, 6]] * 4
+    dag.generate_discrete_parameters(seed=1)
+    data = dag.sample(1000)
+    data.to_csv(temp_out / 'data.csv', index=False)
+
+    data_loaded = pd.read_csv(temp_out / 'data.csv')
+    dag_est = test_dag.copy()
+    dag_est.estimate_parameters(data_loaded, infer_levels=True)
+
+    data_est = dag_est.sample(1000)
+    # assert np.allclose(data.describe().values, data_est.describe().values)
+
+    for i in range(4):
+        assert np.allclose(dag_est.vs[i]['CPD'].array, dag.vs[i]['CPD'].array, atol=0.1)
 
 
 def test_DAG_sample_continuous(test_dag):
@@ -331,10 +397,22 @@ def test_Graph():
 
 
 def test_pickling(test_dag):
-    dump = pickle.dumps(test_dag)
-    dag = pickle.loads(dump)
-    assert dag.edges == test_dag.edges
-    assert dag.nodes == test_dag.nodes
+    dag = test_dag.copy()
+    dag.generate_discrete_parameters()
+    dump = pickle.dumps(dag)
+    loaded_dag = pickle.loads(dump)
+    assert loaded_dag.edges == dag.edges
+    assert loaded_dag.nodes == dag.nodes
+    for i in range(4):
+        assert np.array_equal(loaded_dag.vs[i]['CPD'].array, dag.vs[i]['CPD'].array)
+
+    learnt_dag = test_dag.copy()
+    learnt_dag.estimate_parameters(dag.sample(100), infer_levels=True)
+    learnt_dag_dump = pickle.dumps(learnt_dag)
+    loaded_learnt_dag = pickle.loads(learnt_dag_dump)
+
+    for i in range(4):
+        assert np.array_equal(loaded_learnt_dag.vs[i]['CPD'].array, learnt_dag.vs[i]['CPD'].array)
 
 
 def test_bif_parser():

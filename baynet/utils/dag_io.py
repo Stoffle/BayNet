@@ -23,7 +23,7 @@ def dag_to_buf(dag: "baynet.DAG") -> bytes:
         if vertex["CPD"] is not None:
             if isinstance(vertex["CPD"], ConditionalProbabilityTable):
                 node.variable_type = DAG_pb2.NodeType.DISCRETE
-                node.levels.extend(vertex["levels"])
+                node.levels.extend([str(level) for level in vertex["levels"]])
             elif isinstance(vertex["CPD"], ConditionalProbabilityDistribution):
                 node.variable_type = DAG_pb2.NodeType.CONTINUOUS
             node.cpd_array.shape.extend(vertex["CPD"].array.shape)
@@ -64,7 +64,7 @@ def buf_to_dag(dag_buf: bytes, dag: Optional["baynet.DAG"] = None) -> "baynet.DA
 def buf_to_array(array_buf: DAG_pb2.Array) -> np.ndarray:
     """Convert protobuf array object into numpy ndarray."""
     # pylint: disable=no-member
-    arr = np.frombuffer(array_buf.flat_array)
+    arr = np.frombuffer(array_buf.flat_array).copy()
     if arr.size > 0:
         arr = arr.reshape(list(array_buf.shape))
     return arr
