@@ -11,7 +11,8 @@ import pandas as pd
 from pandas.api.types import is_string_dtype, is_integer_dtype, is_categorical_dtype
 from baynet.utils import dag_io, visualisation
 
-from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
+from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable, ParamEstMethods
+
 
 
 def _nodes_sorted(nodes: Union[List[int], List[str], List[object]]) -> List[str]:
@@ -293,7 +294,7 @@ class DAG(igraph.Graph):
     def estimate_parameters(
         self,
         data: pd.DataFrame,
-        method: str = "mle",
+        method: ParamEstMethods = "mle",
         infer_levels: bool = False,
         method_args: Optional[Dict[str, Union[int, float]]] = None,
     ) -> None:
@@ -301,7 +302,7 @@ class DAG(igraph.Graph):
         data = data.copy()
         if infer_levels:
             if all(is_categorical_dtype(data[col]) for col in data.columns):
-                self.vs["levels"] = [dtype.categories.astype(str).tolist() for dtype in data.dtypes]
+                self.vs["levels"] = [np.sort(dtype.categories.astype(str)) for dtype in data.dtypes]
             else:
                 for vertex in self.vs:
                     if not (
@@ -311,9 +312,9 @@ class DAG(igraph.Graph):
                         raise ValueError(
                             f"Unrecognised DataFrame dtype: {data[vertex['name']].dtype}"
                         )
-                    vertex_categories = data[vertex["name"]].unique()
+                    vertex_categories = np.sort(data[vertex["name"]].unique())
                     column = pd.Categorical(data[vertex["name"]], categories=vertex_categories)
-                    vertex["levels"] = vertex_categories.astype(str).tolist()
+                    vertex["levels"] = vertex_categories.astype(str)
                     data[vertex["name"]] = column
         else:
             try:

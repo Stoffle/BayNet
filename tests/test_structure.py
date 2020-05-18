@@ -51,7 +51,7 @@ def test_DAG_from_amat():
     assert (
         fully_connected_graph.edges
         == fully_connected_graph.directed_edges
-        == {("C", "A"), ("B", "A"), ("D", "B"), ("D", "C"), ("D", "A"), ("C", "B"),}
+        == {("C", "A"), ("B", "A"), ("D", "B"), ("D", "C"), ("D", "A"), ("C", "B")}
     )
 
 

@@ -62,7 +62,7 @@ setup(
         "dev": [
             "black",
             "mypy >= 0.720",
-            "pylint >= 2.0",
+            "pylint >= 2.5.2",
             "pytest >= 3.3.2",
             "pytest-cov >= 2.6.0",
             "pre-commit",

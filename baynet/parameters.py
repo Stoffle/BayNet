@@ -1,8 +1,12 @@
 """Parameter tables for Graph objects."""
 from typing import List, Tuple, Optional, Union, Dict
+from typing_extensions import Literal
 import numpy as np
 import pandas as pd
 import igraph
+
+
+ParamEstMethods = Literal["mle", "dfe"] # pylint: disable=invalid-name
 
 
 class ConditionalProbabilityTable:
@@ -32,7 +36,7 @@ class ConditionalProbabilityTable:
         cls,
         vertex: igraph.Vertex,
         data: pd.DataFrame,
-        method: str = "mle",
+        method: ParamEstMethods = "mle",
         method_args: Optional[Dict[str, Union[int, float]]] = None,
     ) -> "ConditionalProbabilityTable":
         """Create a CPT, populated with predicted parameters based on supplied data."""
