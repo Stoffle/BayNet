@@ -70,7 +70,7 @@ def buf_to_array(array_buf: DAG_pb2.Array) -> np.ndarray:
     return arr
 
 
-def dag_from_bif(bif_path: Path) -> 'baynet.DAG':
+def dag_from_bif(bif_path: Path) -> "baynet.DAG":
     """Create a DAG object from a .bif file."""
     lcurly, rcurly, lsquare, rsquare, lbracket, rbracket, vbar, semicolon = map(
         pp.Suppress, "{}[]()|;"

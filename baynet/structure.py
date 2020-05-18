@@ -301,7 +301,7 @@ class DAG(igraph.Graph):
         data = data.copy()
         if infer_levels:
             if all(is_categorical_dtype(data[col]) for col in data.columns):
-                self.vs['levels'] = [list(dtype.categories) for dtype in data.dtypes]
+                self.vs["levels"] = [dtype.categories.astype(str).tolist() for dtype in data.dtypes]
             else:
                 for vertex in self.vs:
                     if not (
@@ -311,22 +311,22 @@ class DAG(igraph.Graph):
                         raise ValueError(
                             f"Unrecognised DataFrame dtype: {data[vertex['name']].dtype}"
                         )
-                    vertex_categories = sorted(data[vertex["name"]].unique())
-                    column = pd.Categorical(data[vertex['name']], categories=vertex_categories)
-                    vertex['levels'] = vertex_categories
-                    data[vertex['name']] = column
+                    vertex_categories = data[vertex["name"]].unique()
+                    column = pd.Categorical(data[vertex["name"]], categories=vertex_categories)
+                    vertex["levels"] = vertex_categories.astype(str).tolist()
+                    data[vertex["name"]] = column
         else:
             try:
                 if not all(isinstance(dtype, pd.CategoricalDtype) for dtype in data.dtypes):
                     for vertex in self.vs:
                         if is_integer_dtype(data[vertex["name"]]):
-                            cat_dtype = pd.CategoricalDtype(vertex['levels'], ordered=True)
-                            data[vertex['name']] = pd.Categorical.from_codes(
-                                codes=data[vertex['name']], dtype=cat_dtype
+                            cat_dtype = pd.CategoricalDtype(vertex["levels"], ordered=True)
+                            data[vertex["name"]] = pd.Categorical.from_codes(
+                                codes=data[vertex["name"]], dtype=cat_dtype
                             )
                         elif is_string_dtype(data[vertex["name"]]):
-                            data[vertex['name']] = pd.Categorical(
-                                data[vertex['name']], categories=vertex['levels']
+                            data[vertex["name"]] = pd.Categorical(
+                                data[vertex["name"]], categories=vertex["levels"]
                             )
             except KeyError:
                 raise ValueError(
@@ -409,17 +409,17 @@ class DAG(igraph.Graph):
             vertex["CPD"] = deepcopy(vertex["CPD"])
         return self_copy
 
-    def plot(self, path: Path = Path().resolve() / 'DAG.png') -> None:
+    def plot(self, path: Path = Path().resolve() / "DAG.png") -> None:
         """Save a plot of the DAG to specified file path."""
         dag = self.copy()
-        dag.vs['label'] = dag.vs['name']
-        dag.vs['fontsize'] = 30
-        dag.vs['fontname'] = "Helvetica"
-        dag.es['color'] = "black"
-        dag.es['penwidth'] = 2
-        dag.es['style'] = "solid"
+        dag.vs["label"] = dag.vs["name"]
+        dag.vs["fontsize"] = 30
+        dag.vs["fontname"] = "Helvetica"
+        dag.es["color"] = "black"
+        dag.es["penwidth"] = 2
+        dag.es["style"] = "solid"
         visualisation.draw_graph(dag, save_path=path)
 
     def compare(self, other_graph: DAG) -> visualisation.GraphComparison:
         """Produce comparison to another DAG for plotting."""
-        return visualisation.GraphComparison(self, other_graph, list(self.vs['name']))
+        return visualisation.GraphComparison(self, other_graph, list(self.vs["name"]))

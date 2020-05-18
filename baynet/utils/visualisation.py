@@ -23,14 +23,14 @@ class GraphComparison(igraph.Graph):
         """Create comparison graph."""
         super().__init__(
             directed=True,
-            vertex_attrs={'fontsize': None, 'fontname': None, 'label': None},
-            edge_attrs={'color': None, 'penwidth': None, 'style': None},
+            vertex_attrs={"fontsize": None, "fontname": None, "label": None},
+            edge_attrs={"color": None, "penwidth": None, "style": None},
         )
         self.line_width = line_width
         self.add_vertices(nodes)
-        self.vs['label'] = nodes
-        self.vs['fontsize'] = 30
-        self.vs['fontname'] = "Helvetica"
+        self.vs["label"] = nodes
+        self.vs["fontsize"] = 30
+        self.vs["fontname"] = "Helvetica"
 
         self.add_edges(graph_a.edges & graph_b.edges)
         self.colour_uncoloured(both_col)
@@ -51,26 +51,26 @@ class GraphComparison(igraph.Graph):
     def colour_uncoloured(self, colour: str) -> None:
         """Colour edges not yet given a colour."""
         for edge in self.es:
-            if edge['color'] is None:
-                edge['color'] = colour
+            if edge["color"] is None:
+                edge["color"] = colour
                 if colour == "red":
-                    edge['style'] = "dashed"
+                    edge["style"] = "dashed"
                 else:
-                    edge['style'] = "solid"
-                edge['penwidth'] = self.line_width
+                    edge["style"] = "solid"
+                edge["penwidth"] = self.line_width
 
-    def plot(self, path: Path = Path().parent / 'comparison.png') -> None:
+    def plot(self, path: Path = Path().parent / "comparison.png") -> None:
         """Save a graphviz plot of comparison."""
         draw_graph(self, path)
 
 
-def draw_graph(graph: igraph.Graph, save_path: Path = Path().parent / 'graph.png',) -> None:
+def draw_graph(graph: igraph.Graph, save_path: Path = Path().parent / "graph.png",) -> None:
     """Save a graphviz plot of a given graph."""
-    temp_path = save_path.parent / 'temp.dot'
-    with open(temp_path, 'w') as temp_file:
+    temp_path = save_path.parent / "temp.dot"
+    with open(temp_path, "w") as temp_file:
         graph.write_dot(temp_file)
     graphviz_source = graphviz.Source.from_file(temp_path)
     temp_path.unlink()
 
-    with open(save_path, 'wb') as save_file:
-        save_file.write(graphviz_source.pipe(format=save_path.suffix.strip('.')))
+    with open(save_path, "wb") as save_file:
+        save_file.write(graphviz_source.pipe(format=save_path.suffix.strip(".")))
