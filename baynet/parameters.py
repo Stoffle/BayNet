@@ -6,7 +6,7 @@ import pandas as pd
 import igraph
 
 
-ParamEstMethods = Literal["mle", "dfe"] # pylint: disable=invalid-name
+ParamEstMethods = Literal["mle", "dfe"]  # pylint: disable=invalid-name
 
 
 class ConditionalProbabilityTable:

@@ -11,8 +11,11 @@ import pandas as pd
 from pandas.api.types import is_string_dtype, is_integer_dtype, is_categorical_dtype
 from baynet.utils import dag_io, visualisation
 
-from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable, ParamEstMethods
-
+from .parameters import (
+    ConditionalProbabilityDistribution,
+    ConditionalProbabilityTable,
+    ParamEstMethods,
+)
 
 
 def _nodes_sorted(nodes: Union[List[int], List[str], List[object]]) -> List[str]:
