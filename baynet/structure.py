@@ -305,7 +305,9 @@ class DAG(igraph.Graph):
         data = data.copy()
         if infer_levels:
             if all(is_categorical_dtype(data[col]) for col in data.columns):
-                self.vs["levels"] = [np.sort(dtype.categories.astype(str)) for dtype in data.dtypes]
+                self.vs["levels"] = [
+                    np.sort(dtype.categories.astype(str)).tolist() for dtype in data.dtypes
+                ]
             else:
                 for vertex in self.vs:
                     if not (
@@ -316,8 +318,10 @@ class DAG(igraph.Graph):
                             f"Unrecognised DataFrame dtype: {data[vertex['name']].dtype}"
                         )
                     vertex_categories = np.sort(data[vertex["name"]].unique())
-                    column = pd.Categorical(data[vertex["name"]], categories=vertex_categories)
-                    vertex["levels"] = vertex_categories.astype(str)
+                    column = pd.Categorical(
+                        data[vertex["name"]], categories=vertex_categories.tolist()
+                    )
+                    vertex["levels"] = vertex_categories.astype(str).tolist()
                     data[vertex["name"]] = column
         else:
             try:
