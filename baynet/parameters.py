@@ -52,6 +52,8 @@ class ConditionalProbabilityTable:
     ) -> None:
         """Predict parameters using DFE method."""
         self.rescale_probabilities()
+        if iterations < 1:
+            iterations = len(data) * 4
         for _, sample in (
             data.apply(lambda x: x.cat.codes).sample(n=iterations, replace=True).iterrows()
         ):
@@ -80,8 +82,6 @@ class ConditionalProbabilityTable:
         self.array[self.array.sum(axis=-1) == 0] = 1.0
         self.array = np.nan_to_num(self.array, nan=1e-8, posinf=1.0 - 1e-8)
         # Rescale probabilities to sum to 1
-        self.array[self.array.sum(axis=-1) == 0] = 1.0
-        self.array /= np.expand_dims(self.array.sum(axis=-1), axis=-1)
         self.array /= np.expand_dims(self.array.sum(axis=-1), axis=-1)
         self.cumsum_array = self.array.cumsum(axis=-1)
 
