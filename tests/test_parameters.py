@@ -65,7 +65,9 @@ def test_dfe_default_parameters():
     dag = DAG.from_modelstring('[A]')
     dag.vs['levels'] = [["A", "B"] for v in dag.vs]
     data = pd.DataFrame({'A': [0]})
-    dag.estimate_parameters(data, method="dfe", method_args={"iterations": None, "learning_rate": 0.1})
+    dag.estimate_parameters(
+        data, method="dfe", method_args={"iterations": None, "learning_rate": 0.1}
+    )
     # x + (x * 0.1) assert checks if data was changed 4 times (len * 4, as described in the paper)
     assert np.array_equal(dag.vs[0]['CPD'].cumsum_array, np.array([0.67195, 1]))
 
