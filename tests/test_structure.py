@@ -315,6 +315,8 @@ def test_DAG_estimate_parameters_infer(test_dag):
     assert np.array_equal(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]]])
     assert np.array_equal(dag.vs[2]['CPD'].cumsum_array, [[1.0]])
     assert np.array_equal(dag.vs[3]['CPD'].cumsum_array, [1.0])
+    assert all(isinstance(levels, list) for levels in dag.vs['levels'])
+    assert all(isinstance(level, str) for levels in dag.vs['levels'] for level in levels)
 
     dag2 = test_dag.copy()
     dag2.estimate_parameters(data2, method="mle", infer_levels=True)
@@ -322,16 +324,20 @@ def test_DAG_estimate_parameters_infer(test_dag):
     assert np.array_equal(dag2.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]]])
     assert np.array_equal(dag2.vs[2]['CPD'].cumsum_array, [[1.0]])
     assert np.array_equal(dag2.vs[3]['CPD'].cumsum_array, [1.0])
+    assert all(isinstance(levels, list) for levels in dag.vs['levels'])
+    assert all(isinstance(level, str) for levels in dag.vs['levels'] for level in levels)
 
     dag3 = test_dag.copy()
     dag3.generate_discrete_parameters(seed=1)
-    data4 = dag3.sample(100, seed=1)
+    data3 = dag3.sample(100, seed=1)
     dag3_est = test_dag.copy()
-    dag3_est.estimate_parameters(data4, infer_levels=True)
+    dag3_est.estimate_parameters(data3, infer_levels=True)
     for i in range(4):
         assert np.allclose(
             dag3.vs[i]['CPD'].cumsum_array, dag3_est.vs[i]['CPD'].cumsum_array, atol=0.2
         )
+    assert all(isinstance(levels, list) for levels in dag.vs['levels'])
+    assert all(isinstance(level, str) for levels in dag.vs['levels'] for level in levels)
 
 
 def test_DAG_estimate_parameters_sampled_data(test_dag, temp_out):

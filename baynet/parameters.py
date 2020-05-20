@@ -24,8 +24,8 @@ class ConditionalProbabilityTable:
             raise ValueError(f"Node {vertex['name']} missing attribute 'levels'")
         self.levels = node_levels
 
-        self.array = np.zeros([*n_parent_levels, len(node_levels)], dtype=float)
-        self.cumsum_array = np.zeros([*n_parent_levels, len(node_levels)], dtype=float)
+        self.array = np.zeros([*n_parent_levels, len(node_levels)])
+        self.cumsum_array = np.zeros([*n_parent_levels, len(node_levels)])
 
     @classmethod
     def estimate(
@@ -100,7 +100,7 @@ class ConditionalProbabilityTable:
             alpha = 20.0
         if seed is not None:
             np.random.seed(seed)
-        parent_levels = int(np.prod(np.array(self.array.shape[:-1], dtype=np.int64)))
+        parent_levels = int(np.prod(self.array.shape[:-1]))
         alpha_norm: np.float64 = np.max(
             np.array([0.01, alpha / (parent_levels * len(self.levels))])
         )
@@ -121,7 +121,7 @@ class ConditionalProbabilityTable:
     def intervene(self, value: str) -> None:
         """Fix CPT to only ever return `value`."""
         value_index = self.levels.index(value)
-        self.array = np.zeros(len(self.levels), dtype=float)
+        self.array = np.zeros(len(self.levels))
         self.parents = []
 
         self.array[value_index] = 1.0
@@ -132,7 +132,7 @@ def _sample_cpt(
     cpt: np.ndarray, parent_values: List[Tuple[int, ...]], random_vector: np.ndarray
 ) -> np.ndarray:
     """Sample given cpt based on rows of parent values and random vector."""
-    out_vector = np.zeros(random_vector.shape, dtype=int)
+    out_vector = np.zeros(random_vector.shape).astype(int)
     for row_idx in range(random_vector.shape[0]):
         probs = cpt[parent_values[row_idx]]
         out_vector[row_idx] = np.argmax(random_vector[row_idx] < probs)
@@ -159,7 +159,7 @@ class ConditionalProbabilityDistribution:
             return
         self.name = node["name"]
         self.parents = [str(parent["name"]) for parent in node.neighbors(mode="in")]
-        self.array = np.zeros(len(self.parents), dtype=float)
+        self.array = np.zeros(len(self.parents))
 
     def sample_parameters(
         self, weights: Optional[List[float]] = None, seed: Optional[int] = None

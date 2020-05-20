@@ -305,26 +305,28 @@ class DAG(igraph.Graph):
             else:
                 for vertex in self.vs:
                     if not (
-                        is_integer_dtype(data[vertex["name"]])
-                        or is_string_dtype(data[vertex["name"]])
+                        is_integer_dtype(data[vertex['name']])
+                        or is_string_dtype(data[vertex['name']])
                     ):
                         raise ValueError(
                             f"Unrecognised DataFrame dtype: {data[vertex['name']].dtype}"
                         )
-                    vertex_categories = sorted(data[vertex["name"]].unique())
-                    column = pd.Categorical(data[vertex['name']], categories=vertex_categories)
+                    vertex_categories = sorted(data[vertex['name']].unique().astype(str))
+                    column = pd.Categorical(
+                        data[vertex['name']].astype(str), categories=vertex_categories
+                    )
                     vertex['levels'] = vertex_categories
                     data[vertex['name']] = column
         else:
             try:
                 if not all(isinstance(dtype, pd.CategoricalDtype) for dtype in data.dtypes):
                     for vertex in self.vs:
-                        if is_integer_dtype(data[vertex["name"]]):
+                        if is_integer_dtype(data[vertex['name']]):
                             cat_dtype = pd.CategoricalDtype(vertex['levels'], ordered=True)
                             data[vertex['name']] = pd.Categorical.from_codes(
                                 codes=data[vertex['name']], dtype=cat_dtype
                             )
-                        elif is_string_dtype(data[vertex["name"]]):
+                        elif is_string_dtype(data[vertex['name']]):
                             data[vertex['name']] = pd.Categorical(
                                 data[vertex['name']], categories=vertex['levels']
                             )
@@ -334,7 +336,7 @@ class DAG(igraph.Graph):
                 )
 
         for vertex in self.vs:
-            vertex["CPD"] = ConditionalProbabilityTable.estimate(
+            vertex['CPD'] = ConditionalProbabilityTable.estimate(
                 vertex, data=data, method=method, method_args=method_args
             )
 
@@ -344,10 +346,10 @@ class DAG(igraph.Graph):
             np.random.seed(seed)
         sorted_nodes = self.topological_sorting(mode="out")
         dtype: Type
-        if all(isinstance(vertex["CPD"], ConditionalProbabilityTable) for vertex in self.vs):
+        if all(isinstance(vertex['CPD'], ConditionalProbabilityTable) for vertex in self.vs):
             dtype = int
         elif all(
-            isinstance(vertex["CPD"], ConditionalProbabilityDistribution) for vertex in self.vs
+            isinstance(vertex['CPD'], ConditionalProbabilityDistribution) for vertex in self.vs
         ):
             dtype = float
         else:
