@@ -48,11 +48,11 @@ class ConditionalProbabilityTable:
         return cpt
 
     def dfe_estimate(
-        self, data: pd.DataFrame, iterations: int = 250, learning_rate: float = 0.01
+        self, data: pd.DataFrame, iterations: Optional[int] = None, learning_rate: float = 0.01
     ) -> None:
         """Predict parameters using DFE method."""
         self.rescale_probabilities()
-        if iterations < 1:
+        if iterations is None:
             iterations = len(data) * 4
         for _, sample in (
             data.apply(lambda x: x.cat.codes).sample(n=iterations, replace=True).iterrows()
