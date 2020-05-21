@@ -52,11 +52,13 @@ setup(
     packages=find_packages(exclude=("tests",)),
     python_requires=">=3.7",
     install_requires=[
-        "python-igraph < 0.8.0",
+        "graphviz",
+        "matplotlib",
+        "pillow",
         "numpy >= 1.17.2",
         "pandas >= 0.25",
         "protobuf",
-        "graphviz",
+        "python-igraph < 0.8.0",
     ],
     extras_require={
         "dev": [
