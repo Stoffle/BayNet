@@ -54,9 +54,9 @@ setup(
     install_requires=[
         "graphviz",
         "matplotlib",
-        "pillow",
         "numpy >= 1.17.2",
         "pandas >= 0.25",
+        "pillow",
         "protobuf",
         "python-igraph < 0.8.0",
     ],

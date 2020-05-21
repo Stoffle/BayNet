@@ -120,7 +120,6 @@ def draw_graph(
         comp_im = np.concatenate([legend_im, chart_im], axis=1)
         comp_im = Image.fromarray(comp_im)
         comp_im.save(save_path, format=save_format)
-        comp_im.show()
 
         buf.close()
     else:
