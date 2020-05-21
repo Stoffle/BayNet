@@ -69,7 +69,7 @@ class GraphComparison(igraph.Graph):
                     edge["style"] = "solid"
                 edge["penwidth"] = self.line_width
 
-    def plot(self, path: Path = Path().parent / "comparison.png", legend=False) -> None:
+    def plot(self, path: Path = Path().parent / "comparison.png", legend: bool = False) -> None:
         """Save a graphviz plot of comparison."""
         if legend:
             legend_kwargs = {
@@ -78,7 +78,7 @@ class GraphComparison(igraph.Graph):
                 "reversed in b": {"ls": "-", "c": self._reversed_in_b_col},
             }
         else:
-            legend = None
+            legend_kwargs = {}
         draw_graph(self, path, legend_kwargs=legend_kwargs)
 
 
@@ -125,4 +125,4 @@ def draw_graph(
         buf.close()
     else:
         with open(save_path, "wb") as save_file:
-            save_file.write(graphviz_source.pipe(format=save_format)
+            save_file.write(graphviz_source.pipe(format=save_format))
