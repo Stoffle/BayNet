@@ -100,7 +100,6 @@ def draw_graph(
         buf.write(graphviz_source.pipe(format="png"))
         buf.seek(0)
         chart_im = Image.open(buf)
-        buf.flush()
 
         dpi = chart_im.size[1] // 3
         legend_markers = [Line2D([0], [0], **kwargs, lw=1.3) for kwargs in legend_kwargs.values()]
@@ -118,6 +117,7 @@ def draw_graph(
         comp_im = np.concatenate([legend_im, chart_im], axis=1)
         comp_im = Image.fromarray(comp_im)
         comp_im.save(save_path, format="png")
+        comp_im.show()
 
         buf.close()
     else:
