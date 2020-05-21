@@ -69,13 +69,16 @@ class GraphComparison(igraph.Graph):
                     edge["style"] = "solid"
                 edge["penwidth"] = self.line_width
 
-    def plot(self, path: Path = Path().parent / "comparison.png") -> None:
+    def plot(self, path: Path = Path().parent / "comparison.png", legend=False) -> None:
         """Save a graphviz plot of comparison."""
-        legend_kwargs = {
-            "a not b": {"ls": "--", "c": self._a_not_b_col},
-            "b not a": {"ls": "-", "c": self._b_not_a_col},
-            "reversed in b": {"ls": "-", "c": self._reversed_in_b_col},
-        }
+        if legend:
+            legend_kwargs = {
+                "a not b": {"ls": "--", "c": self._a_not_b_col},
+                "b not a": {"ls": "-", "c": self._b_not_a_col},
+                "reversed in b": {"ls": "-", "c": self._reversed_in_b_col},
+            }
+        else:
+            legend = None
         draw_graph(self, path, legend_kwargs=legend_kwargs)
 
 
@@ -116,10 +119,10 @@ def draw_graph(
 
         comp_im = np.concatenate([legend_im, chart_im], axis=1)
         comp_im = Image.fromarray(comp_im)
-        comp_im.save(save_path, format="png")
+        comp_im.save(save_path, format=save_format)
         comp_im.show()
 
         buf.close()
     else:
         with open(save_path, "wb") as save_file:
-            save_file.write(graphviz_source.pipe(format=save_path.suffix.strip(".")))
+            save_file.write(graphviz_source.pipe(format=save_format)
