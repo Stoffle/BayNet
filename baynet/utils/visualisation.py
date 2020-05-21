@@ -1,15 +1,14 @@
 """Graph visualisation functions."""
-from pathlib import Path
-
-import igraph
-import graphviz
-from typing import Dict, Optional, Any
-import numpy as np
 import io
-import matplotlib.pyplot as plt
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import graphviz
+import igraph
+import numpy as np
 from matplotlib import pylab
-from PIL import Image
 from matplotlib.lines import Line2D
+from PIL import Image
 
 
 class GraphComparison(igraph.Graph):
