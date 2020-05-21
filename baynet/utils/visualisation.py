@@ -3,6 +3,13 @@ from pathlib import Path
 
 import igraph
 import graphviz
+from typing import Dict, Optional, Any
+import numpy as np
+import io
+import matplotlib.pyplot as plt
+from matplotlib import pylab
+from PIL import Image
+from matplotlib.lines import Line2D
 
 
 class GraphComparison(igraph.Graph):
@@ -23,14 +30,18 @@ class GraphComparison(igraph.Graph):
         """Create comparison graph."""
         super().__init__(
             directed=True,
-            vertex_attrs={'fontsize': None, 'fontname': None, 'label': None},
-            edge_attrs={'color': None, 'penwidth': None, 'style': None},
+            vertex_attrs={"fontsize": None, "fontname": None, "label": None},
+            edge_attrs={"color": None, "penwidth": None, "style": None},
         )
         self.line_width = line_width
         self.add_vertices(nodes)
-        self.vs['label'] = nodes
-        self.vs['fontsize'] = 30
-        self.vs['fontname'] = "Helvetica"
+        self.vs["label"] = nodes
+        self.vs["fontsize"] = 30
+        self.vs["fontname"] = "Helvetica"
+
+        self._a_not_b_col = a_not_b_col
+        self._b_not_a_col = b_not_a_col
+        self._reversed_in_b_col = reversed_in_b_col
 
         self.add_edges(graph_a.edges & graph_b.edges)
         self.colour_uncoloured(both_col)
@@ -51,26 +62,65 @@ class GraphComparison(igraph.Graph):
     def colour_uncoloured(self, colour: str) -> None:
         """Colour edges not yet given a colour."""
         for edge in self.es:
-            if edge['color'] is None:
-                edge['color'] = colour
+            if edge["color"] is None:
+                edge["color"] = colour
                 if colour == "red":
-                    edge['style'] = "dashed"
+                    edge["style"] = "dashed"
                 else:
-                    edge['style'] = "solid"
-                edge['penwidth'] = self.line_width
+                    edge["style"] = "solid"
+                edge["penwidth"] = self.line_width
 
-    def plot(self, path: Path = Path().parent / 'comparison.png') -> None:
+    def plot(self, path: Path = Path().parent / "comparison.png") -> None:
         """Save a graphviz plot of comparison."""
-        draw_graph(self, path)
+        legend_kwargs = {
+            "a not b": {"ls": "--", "c": self._a_not_b_col},
+            "b not a": {"ls": "-", "c": self._b_not_a_col},
+            "reversed in b": {"ls": "-", "c": self._reversed_in_b_col},
+        }
+        draw_graph(self, path, legend_kwargs=legend_kwargs)
 
 
-def draw_graph(graph: igraph.Graph, save_path: Path = Path().parent / 'graph.png',) -> None:
+def draw_graph(
+    graph: igraph.Graph,
+    save_path: Path = Path().parent / "graph.png",
+    legend_kwargs: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> None:
     """Save a graphviz plot of a given graph."""
-    temp_path = save_path.parent / 'temp.dot'
-    with open(temp_path, 'w') as temp_file:
+    save_format = save_path.suffix.strip(".")
+    if legend_kwargs and save_format and save_format == "svg":
+        raise ValueError("File cannot be saved in the SVG format when a legend is specified.")
+    temp_path = save_path.parent / "temp.dot"
+
+    with open(temp_path, "w") as temp_file:
         graph.write_dot(temp_file)
     graphviz_source = graphviz.Source.from_file(temp_path)
     temp_path.unlink()
 
-    with open(save_path, 'wb') as save_file:
-        save_file.write(graphviz_source.pipe(format=save_path.suffix.strip('.')))
+    if legend_kwargs:
+        buf = io.BytesIO()
+        buf.write(graphviz_source.pipe(format="png"))
+        buf.seek(0)
+        chart_im = Image.open(buf)
+        buf.flush()
+
+        dpi = chart_im.size[1] // 3
+        legend_markers = [Line2D([0], [0], **kwargs, lw=1.3) for kwargs in legend_kwargs.values()]
+        chart_legend = pylab.figure(figsize=(1.45, 3), dpi=dpi)
+
+        buf = io.BytesIO()
+        chart_legend.legend(legend_markers, legend_kwargs.keys(), loc="center", frameon=False)
+        chart_legend.savefig(buf, format="png", dpi=dpi)
+        buf.seek(0)
+
+        legend_im = Image.open(buf)
+        if legend_im.size[1] != chart_im.size[1]:
+            legend_im = legend_im.resize((legend_im.size[0], chart_im.size[1]))
+
+        comp_im = np.concatenate([legend_im, chart_im], axis=1)
+        comp_im = Image.fromarray(comp_im)
+        comp_im.save(save_path, format="png")
+
+        buf.close()
+    else:
+        with open(save_path, "wb") as save_file:
+            save_file.write(graphviz_source.pipe(format=save_path.suffix.strip(".")))

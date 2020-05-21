@@ -13,7 +13,7 @@ from baynet.parameters import (
 
 def test_CPT_init(test_dag):
     dag = test_dag
-    dag.vs['levels'] = [["0", "1"] for v in dag.vs]
+    dag.vs["levels"] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
     assert cpt.array.shape == (2, 2, 2)
     assert np.allclose(cpt.array, 0)
@@ -29,48 +29,48 @@ def test_CPT_init(test_dag):
 
 def test_CPT_estimate_mle(test_dag):
     dag = test_dag
-    dag.vs['levels'] = [["A", "B"] for v in dag.vs]
+    dag.vs["levels"] = [["A", "B"] for v in dag.vs]
     data = pd.DataFrame(
-        {'A': [0, 0, 0, 0, 1, 1, 1, 1], 'B': [0, 1] * 4, 'C': [0] * 8, 'D': [1] * 8}
+        {"A": [0, 0, 0, 0, 1, 1, 1, 1], "B": [0, 1] * 4, "C": [0] * 8, "D": [1] * 8}
     )
     dag.estimate_parameters(data)
-    assert np.allclose(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0])
-    assert np.allclose(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
-    assert np.allclose(dag.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
-    assert np.allclose(dag.vs[3]['CPD'].cumsum_array, [0.0, 1.0])
+    assert np.allclose(dag.vs[0]["CPD"].cumsum_array, [0.5, 1.0])
+    assert np.allclose(dag.vs[1]["CPD"].cumsum_array, [[[0.5, 1.0]] * 2] * 2)
+    assert np.allclose(dag.vs[2]["CPD"].cumsum_array, [[0.5, 1.0], [1.0, 1.0]])
+    assert np.allclose(dag.vs[3]["CPD"].cumsum_array, [0.0, 1.0])
 
 
 def test_CPT_estimate_dfe(test_dag):
     dag = test_dag
-    dag.vs['levels'] = [["A", "B"] for v in dag.vs]
+    dag.vs["levels"] = [["A", "B"] for v in dag.vs]
     data = pd.DataFrame(
-        {'A': [0, 0, 0, 0, 1, 1, 1, 1], 'B': [0, 1] * 4, 'C': [0] * 8, 'D': [1] * 8}
+        {"A": [0, 0, 0, 0, 1, 1, 1, 1], "B": [0, 1] * 4, "C": [0] * 8, "D": [1] * 8}
     )
     dag.estimate_parameters(data, method="dfe")
-    assert np.allclose(dag.vs[0]['CPD'].cumsum_array, [0.5, 1.0], atol=0.1)
-    assert np.allclose(dag.vs[1]['CPD'].cumsum_array, [[[0.5, 1.0]] * 2] * 2, atol=0.2)
-    assert np.allclose(dag.vs[2]['CPD'].cumsum_array, [[0.5, 1.0], [1.0, 1.0]], atol=0.1)
-    assert np.allclose(dag.vs[3]['CPD'].cumsum_array, [0.0, 1.0], atol=0.1)
+    assert np.allclose(dag.vs[0]["CPD"].cumsum_array, [0.5, 1.0], atol=0.1)
+    assert np.allclose(dag.vs[1]["CPD"].cumsum_array, [[[0.5, 1.0]] * 2] * 2, atol=0.2)
+    assert np.allclose(dag.vs[2]["CPD"].cumsum_array, [[0.5, 1.0], [1.0, 1.0]], atol=0.1)
+    assert np.allclose(dag.vs[3]["CPD"].cumsum_array, [0.0, 1.0], atol=0.1)
 
 
 def test_dfe_parameters():
-    dag = DAG.from_modelstring('[A]')
-    dag.vs['levels'] = [["A", "B"] for v in dag.vs]
-    data = pd.DataFrame({'A': [0, 0]})
+    dag = DAG.from_modelstring("[A]")
+    dag.vs["levels"] = [["A", "B"] for v in dag.vs]
+    data = pd.DataFrame({"A": [0, 0]})
     dag.estimate_parameters(data, method="dfe", method_args={"iterations": 1, "learning_rate": 0.1})
-    assert np.array_equal(dag.vs[0]['CPD'].cumsum_array, np.array([0.55, 1]))
+    assert np.array_equal(dag.vs[0]["CPD"].cumsum_array, np.array([0.55, 1]))
 
 
 def test_CPT_estimate_other(test_dag):
-    test_dag.vs['levels'] = [["A", "B"] for v in test_dag.vs]
+    test_dag.vs["levels"] = [["A", "B"] for v in test_dag.vs]
     with pytest.raises(NotImplementedError):
-        test_dag.estimate_parameters(pd.DataFrame([]), 'other')
+        test_dag.estimate_parameters(pd.DataFrame([]), "other")
 
 
 def test_CPT_rescale(test_dag):
     dag = test_dag
     for n_levels in [1, 2, 3, 4]:
-        dag.vs['levels'] = [list(map(str, range(n_levels))) for v in dag.vs]
+        dag.vs["levels"] = [list(map(str, range(n_levels))) for v in dag.vs]
         cpt = ConditionalProbabilityTable(dag.vs[1])
         cpt.rescale_probabilities()
         # Check cumsum is working properly
@@ -90,7 +90,7 @@ def test_CPT_rescale(test_dag):
 
 def test_CPT_sample_exceptions(test_dag):
     dag = test_dag
-    dag.vs['levels'] = [["0", "1"] for v in dag.vs]
+    dag.vs["levels"] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
     with pytest.raises(TypeError):
         cpt.sample(None)
@@ -98,7 +98,7 @@ def test_CPT_sample_exceptions(test_dag):
 
 def test_CPT_sample_parameters(test_dag):
     dag = test_dag
-    dag.vs['levels'] = [["0", "1"] for v in dag.vs]
+    dag.vs["levels"] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
     cpt_shape = cpt.array.shape
     cpt.sample_parameters(seed=0)
@@ -108,15 +108,15 @@ def test_CPT_sample_parameters(test_dag):
 def test_CPT_marginalise(test_dag):
     dag = test_dag
     dag.generate_discrete_parameters(min_levels=2, max_levels=2, seed=1)
-    cpt = dag.vs[1]['CPD']
-    cpt.marginalise('C')
-    assert cpt.parents == ['D']
+    cpt = dag.vs[1]["CPD"]
+    cpt.marginalise("C")
+    assert cpt.parents == ["D"]
     assert cpt.array.shape == (2, 2)
 
 
 def test_sample_cpt(test_dag):
     dag = test_dag
-    dag.vs['levels'] = [["0", "1"] for v in dag.vs]
+    dag.vs["levels"] = [["0", "1"] for v in dag.vs]
     cpt = ConditionalProbabilityTable(dag.vs[1])
     cpt.array[0, 0, :] = [0.5, 0.5]
     cpt.array[0, 1, :] = [1.0, 0.0]
