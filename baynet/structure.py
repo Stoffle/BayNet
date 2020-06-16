@@ -232,7 +232,7 @@ class DAG(igraph.Graph):
         for node in self.nodes:
             all_parents = self.get_ancestors(node, only_parents=True)
             all_pairs = combinations(all_parents, 2)
-            all_pairs = [sorted(pair) for pair in all_pairs]
+            all_pairs = [sorted(pair, key=lambda x: x['name']) for pair in all_pairs]
             if include_shielded:
                 node_v_structures = [(a["name"], node, b["name"]) for a, b in all_pairs]
             else:

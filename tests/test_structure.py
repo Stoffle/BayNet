@@ -202,6 +202,12 @@ def test_DAG_get_v_structures(test_dag, reversed_dag, partial_dag):
     assert dag.get_v_structures(True) == {("C", "B", "D")}
     assert reversed_dag.get_v_structures(True) == {("B", "D", "C")}
 
+    # Test node order doesn't change V-structure tuple order
+    other_dag = DAG()
+    other_dag.add_vertices(list("DCBA"))
+    other_dag.add_edges([("C", "B"), ("D", "B"), ("D", "C")])
+    assert other_dag.get_v_structures(True) == dag.get_v_structures(True)
+
 
 def test_DAG_serialise_continuous_file(temp_out, test_dag):
     dag_path = temp_out / 'cont.pb'
