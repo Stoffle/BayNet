@@ -1,5 +1,5 @@
 """Functions for loading/saving DAGs."""
-from typing import no_type_check, Optional
+from typing import no_type_check, Optional, Union
 from pathlib import Path
 import numpy as np
 import pyparsing as pp
@@ -70,16 +70,25 @@ def buf_to_array(array_buf: DAG_pb2.Array) -> np.ndarray:
     return arr
 
 
-def dag_from_bif(bif_path: Path) -> 'baynet.DAG':
+def dag_from_bif(bif: Union[Path, str]) -> 'baynet.DAG':
     """Create a DAG object from a .bif file."""
+    if isinstance(bif, Path):
+        if not bif.suffix.lower() == ".bif":
+            raise ValueError(f"Invalid BIF path: {bif}")
+        bif_path = bif.resolve()
+    else:
+        bif_path = Path(__file__).parent / 'bif_library' / f'{bif.strip()}.bif'
+        if not bif_path.is_file():
+            raise ValueError(f"Invalid BIF file name: {bif}")
+
     lcurly, rcurly, lsquare, rsquare, lbracket, rbracket, vbar, semicolon = map(
         pp.Suppress, "{}[]()|;"
     )
     var_literal = pp.Suppress(pp.CaselessLiteral("variable"))
     probability_literal = pp.Suppress(pp.CaselessLiteral("probability"))
     type_discrete_literal = pp.Suppress(pp.CaselessLiteral("type discrete"))
-    float_ = pp.Word(pp.nums + ".").setParseAction(lambda s, l, t: [float(t[0])])
-    var_name = pp.Word(pp.alphanums + "_")
+    float_ = pp.Word(pp.nums + ".e-+").setParseAction(lambda s, l, t: [float(t[0])])
+    var_name = pp.Word(pp.alphanums + "_/-+<>=.")
     int_ = pp.Word(pp.nums).setParseAction(lambda s, l, t: [int(t[0])])
 
     source_cpt_row = pp.Suppress(pp.CaselessLiteral("table")) + pp.delimitedList(float_) + semicolon
