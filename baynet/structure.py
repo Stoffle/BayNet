@@ -285,6 +285,7 @@ class DAG(igraph.Graph):
         min_levels: Optional[int] = None,
         max_levels: Optional[int] = None,
         seed: Optional[int] = None,
+        normalise_alpha: bool = True,
     ) -> None:
         """Populate discrete conditional parameter tables for each node."""
         try:
@@ -293,7 +294,7 @@ class DAG(igraph.Graph):
             self.generate_levels(min_levels, max_levels, seed)
         for vertex in self.vs:
             vertex["CPD"] = ConditionalProbabilityTable(vertex)
-            vertex["CPD"].sample_parameters(alpha=alpha, seed=seed)
+            vertex["CPD"].sample_parameters(alpha=alpha, seed=seed, normalise_alpha=normalise_alpha)
 
     def estimate_parameters(
         self,
