@@ -92,6 +92,11 @@ class DAG(igraph.Graph):
         graph.add_edges(other_graph.edges)
         return graph
 
+    @staticmethod
+    def from_bif(bif: Union[Path, str]) -> "DAG":
+        """Create a Graph from a BIF file, from Path or name of standard network from libarary."""
+        return dag_io.dag_from_bif(bif)
+
     @property
     def dtype(self) -> Optional[str]:
         """Return data type of parameterised network."""
