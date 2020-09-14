@@ -23,7 +23,7 @@ jobs:
         python-version: "${{ matrix.python-version }}"
     - name: Install dependencies
       run: |
-        pip install -e .[ci]
+        pip install .[ci]
     - name: Test with pytest
       run: |
         python -m pytest -vv --cov=baynet --cov-fail-under=95  tests/
