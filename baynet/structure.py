@@ -292,9 +292,11 @@ class DAG(igraph.Graph):
             self.vs["levels"]
         except KeyError:
             self.generate_levels(min_levels, max_levels, seed)
+        if seed is not None:
+            np.random.seed(seed)
         for vertex in self.vs:
             vertex["CPD"] = ConditionalProbabilityTable(vertex)
-            vertex["CPD"].sample_parameters(alpha=alpha, seed=seed, normalise_alpha=normalise_alpha)
+            vertex["CPD"].sample_parameters(alpha=alpha, normalise_alpha=normalise_alpha)
 
     def estimate_parameters(
         self,
