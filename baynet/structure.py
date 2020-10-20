@@ -294,7 +294,7 @@ class DAG(igraph.Graph):
             self.generate_levels(min_levels, max_levels, seed)
         if seed is not None:
             np.random.seed(seed)
-        for i, vertex in enumerate(self.vs):
+        for vertex in self.vs:
             vertex["CPD"] = ConditionalProbabilityTable(vertex)
             vertex["CPD"].sample_parameters(alpha=alpha, normalise_alpha=normalise_alpha)
 
@@ -363,8 +363,7 @@ class DAG(igraph.Graph):
         else:
             raise RuntimeError("DAG requires parameters before sampling is possible.")
         data = pd.DataFrame(
-            np.zeros((n_samples, len(self.nodes))).astype(dtype),
-            columns=self.vs["name"],
+            np.zeros((n_samples, len(self.nodes))).astype(dtype), columns=self.vs["name"],
         )
         for node_idx in sorted_nodes:
             data.iloc[:, node_idx] = self.vs[node_idx]["CPD"].sample(data)

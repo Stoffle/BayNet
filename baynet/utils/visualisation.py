@@ -64,10 +64,7 @@ class GraphComparison(igraph.Graph):
         draw_graph(self, path)
 
 
-def draw_graph(
-    graph: igraph.Graph,
-    save_path: Path = Path().parent / 'graph.png',
-) -> None:
+def draw_graph(graph: igraph.Graph, save_path: Path = Path().parent / 'graph.png',) -> None:
     """Save a graphviz plot of a given graph."""
     temp_path = save_path.parent / 'temp.dot'
     with open(temp_path, 'w') as temp_file:
