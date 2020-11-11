@@ -262,11 +262,12 @@ def test_DAG_generate_parameters(test_dag):
 
     for levels in [["0", "1"], ["0", "1", "2"]]:
         dag.vs['levels'] = [levels for v in dag.vs]
-        dag.generate_discrete_parameters()
+        dag.generate_discrete_parameters(seed=0)
         assert dag.vs[0]['CPD'].array.shape == (len(levels),)
         assert dag.vs[1]['CPD'].array.shape == (len(levels), len(levels), len(levels))
         assert dag.vs[2]['CPD'].array.shape == (len(levels), len(levels))
         assert dag.vs[3]['CPD'].array.shape == (len(levels),)
+        assert not np.allclose(dag.vs[0]['CPD'].array, dag.vs[3]['CPD'].array)
 
 
 def test_DAG_estimate_parameters(test_dag):
