@@ -31,7 +31,7 @@ class GraphEnsemble:
         graph = Graph(directed=True)
         graph.add_vertices(list(self.nodes))
         for edge, count in self.edge_counts.items():
-            graph.add_edge(edge[0], edge[1], penwidth=count/self.dag_count, label=count)
+            graph.add_edge(edge[0], edge[1], penwidth=.25+1.75*count/self.dag_count, label=count)
         graph.vs['label'] = graph.vs['name']
         graph.vs['fontsize'] = 30
         graph.vs['fontname'] = "Helvetica"
@@ -39,7 +39,7 @@ class GraphEnsemble:
         graph.es['style'] = "solid"
         return graph
 
-    def plot(self, path: Optional[Path] = Path().resolve() / 'DAG.png') -> None:
+    def plot(self, path: Optional[Path] = Path().resolve() / 'ensemble.png') -> None:
         """Save plot of GraphEnsemble to specified path."""
         draw_graph(self.generate_graph(), path)
 

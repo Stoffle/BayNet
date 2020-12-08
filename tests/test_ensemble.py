@@ -11,7 +11,7 @@ def test_GraphEnsemble_init(test_dag):
     ensemble = GraphEnsemble(dags)
     graph = ensemble.generate_graph()
     assert set(graph.vs['name']) == set("ABCDE")
-    assert np.allclose(graph.es['penwidth'], [0.9]*3 + [0.1]*4)
+    assert np.allclose(graph.es['penwidth'], [1.825]*3 + [0.425]*4)
 
 
 def test_plot(temp_out, test_dag):
