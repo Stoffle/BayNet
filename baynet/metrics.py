@@ -15,9 +15,7 @@ def _check_args(true_dag: DAG, learnt_dag: DAG, skeleton: bool = False) -> bool:
     return True
 
 
-def false_positive_edges(
-    true_dag: DAG, learnt_dag: DAG, skeleton: bool
-) -> Set[Tuple[str, str]]:
+def false_positive_edges(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> Set[Tuple[str, str]]:
     """Get the set of edges in learnt_dag but not true_dag."""
     _check_args(true_dag, learnt_dag, skeleton)
     if not skeleton:
@@ -33,9 +31,7 @@ def true_positive_edges(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> Set[T
     return true_dag.skeleton_edges & learnt_dag.skeleton_edges
 
 
-def false_negative_edges(
-    true_dag: DAG, learnt_dag: DAG, skeleton: bool
-) -> Set[Tuple[str, str]]:
+def false_negative_edges(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> Set[Tuple[str, str]]:
     """Get the set of edges in true_dag but not learnt_dag."""
     _check_args(true_dag, learnt_dag, skeleton)
     if not skeleton:

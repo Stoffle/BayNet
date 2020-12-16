@@ -1,7 +1,7 @@
 """Graph object."""
 from __future__ import annotations
 from itertools import combinations
-from typing import Iterable, List, Union, Tuple, Set, Any, Optional, Type, Dict
+from typing import List, Union, Tuple, Set, Any, Optional, Type, Dict
 from pathlib import Path
 from copy import deepcopy
 from string import ascii_uppercase
@@ -42,12 +42,12 @@ def _edges_from_modelstring(modelstring: str) -> List[Tuple[str, str]]:
 
 
 def _name_node(index: int) -> str:
-    chars = []
+    chars: List[str] = []
     if index == 0:
         return "A"
     while index > 0:
-        index, r = divmod(index, 26)
-        chars.insert(0, ascii_uppercase[r])
+        index, mod = divmod(index, 26)
+        chars.insert(0, ascii_uppercase[mod])
     return ''.join(chars)
 
 
@@ -105,7 +105,9 @@ class DAG(igraph.Graph):
         return dag
 
     @classmethod
-    def barabasi_albert(cls, n_nodes: int, m_outgoing: Union[int, List[int]], seed: Optional[int] = None) -> "DAG":
+    def barabasi_albert(
+        cls, n_nodes: int, m_outgoing: Union[int, List[int]], seed: Optional[int] = None
+    ) -> "DAG":
         """Create a DAG using the Barabasi-Albert algorithm."""
         if seed is not None:
             random.seed(seed)
@@ -123,13 +125,14 @@ class DAG(igraph.Graph):
         return dag
 
     @classmethod
-    def forest_fire(cls,
+    def forest_fire(
+        cls,
         n_nodes: int,
         fw_prob: float,
         bw_factor: float = 0.0,
         ambs: int = 1,
-        seed: Optional[int] = None
-        ) -> "DAG":
+        seed: Optional[int] = None,
+    ) -> "DAG":
         """Create a DAG using the Forest Fire algorithm."""
         if seed is not None:
             random.seed(seed)
@@ -495,7 +498,11 @@ class DAG(igraph.Graph):
         return visualisation.GraphComparison(self, other_graph, list(self.vs['name']))
 
     def name_nodes(self) -> None:
-        """Assign names to unnamed nodes, for use after classmethods from igraph.Graph which don't name nodes."""
+        """
+        Assign names to unnamed nodes.
+
+        For use after classmethods from igraph.Graph which don't name nodes.
+        """
         for vertex in self.vs:
             if vertex.attributes().get('name', None) is None:
                 vertex['name'] = _name_node(vertex.index)

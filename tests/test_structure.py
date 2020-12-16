@@ -492,14 +492,14 @@ def test_compare(temp_out, test_dag):
 
 
 def test_name_nodes():
-    dag = DAG.Forest_Fire(5, .1)
+    dag = DAG.Forest_Fire(5, 0.1)
     assert dag.get_node_name(0) == "A"
-    dag = DAG.Forest_Fire(5, .1)
+    dag = DAG.Forest_Fire(5, 0.1)
     assert dag.get_node_index("A") == 0
 
 
 def test_structure_types():
-    ff_dag = DAG.forest_fire(10, .1, seed=1)
+    ff_dag = DAG.forest_fire(10, 0.1, seed=1)
     ff_dag.generate_discrete_parameters(seed=1)
     ff_dag.sample(10)
     assert ff_dag.nodes == set(ascii_uppercase[:10])
