@@ -322,6 +322,7 @@ class DAG(igraph.Graph):
         seed: Optional[int] = None,
     ) -> DAG:
         """Set number of levels in each node, for generating discrete data."""
+        self.name_nodes()
         if seed is not None:
             np.random.seed(seed)
         if min_levels is None:
