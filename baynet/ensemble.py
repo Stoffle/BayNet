@@ -1,4 +1,5 @@
-from typing import List, Optional
+"""Tools for creating and using ensembles of DAGs."""
+from typing import DefaultDict, List, Optional, Set, Tuple
 from collections import defaultdict
 from pathlib import Path
 
@@ -8,30 +9,33 @@ from baynet.utils.visualisation import draw_graph
 
 
 class GraphEnsemble:
-    "Combine a list of BayNet DAG objects into an ensemble, with edge weights for visualising."
+    """Combine a list of BayNet DAG objects into an ensemble, with edge weights for visualising."""
+
     # pylint: disable=unsupported-assignment-operation
     def __init__(self, dags: Optional[List[DAG]] = None):
         """Initialise from list of DAGs."""
-        self.nodes = set()
-        self.edge_counts = defaultdict(int)
+        self.nodes: Set[str] = set()
+        self.edge_counts: DefaultDict[Tuple[str, str], int] = defaultdict(int)
         self.dag_count = 0
         if dags is not None:
             for dag in dags:
                 self.add_dag(dag)
 
-    def add_dag(self, dag: DAG):
+    def add_dag(self, dag: DAG) -> None:
         """Add a DAG to the ensemble."""
         self.nodes |= dag.nodes
         self.dag_count += 1
         for edge in dag.edges:
             self.edge_counts[edge] += 1
 
-    def generate_graph(self):
+    def generate_graph(self) -> Graph:
         """Generate Graph from GraphEnsemble with edges weighted by their count."""
         graph = Graph(directed=True)
         graph.add_vertices(list(self.nodes))
         for edge, count in self.edge_counts.items():
-            graph.add_edge(edge[0], edge[1], penwidth=.25+1.75*count/self.dag_count, label=count)
+            graph.add_edge(
+                edge[0], edge[1], penwidth=0.25 + 1.75 * count / self.dag_count, label=count
+            )
         graph.vs['label'] = graph.vs['name']
         graph.vs['fontsize'] = 30
         graph.vs['fontname'] = "Helvetica"
@@ -39,8 +43,6 @@ class GraphEnsemble:
         graph.es['style'] = "solid"
         return graph
 
-    def plot(self, path: Optional[Path] = Path().resolve() / 'ensemble.png') -> None:
+    def plot(self, path: Path = Path().resolve() / 'ensemble.png') -> None:
         """Save plot of GraphEnsemble to specified path."""
         draw_graph(self.generate_graph(), path)
-
-
