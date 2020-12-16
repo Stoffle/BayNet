@@ -1,5 +1,6 @@
 import pickle
 from pathlib import Path
+from string import ascii_uppercase
 
 import pytest
 import networkx as nx
@@ -488,3 +489,27 @@ def test_compare(temp_out, test_dag):
 
     comparison_1.plot(img_path)
     assert img_path.exists()
+
+
+def test_name_nodes():
+    dag = DAG.Forest_Fire(5, .1)
+    assert dag.get_node_name(0) == "A"
+    dag = DAG.Forest_Fire(5, .1)
+    assert dag.get_node_index("A") == 0
+
+
+def test_structure_types():
+    ff_dag = DAG.forest_fire(10, .1, seed=1)
+    ff_dag.generate_discrete_parameters(seed=1)
+    ff_dag.sample(10)
+    assert ff_dag.nodes == set(ascii_uppercase[:10])
+
+    ba_dag = DAG.barabasi_albert(10, 1, seed=1)
+    ba_dag.generate_discrete_parameters(seed=1)
+    ba_dag.sample(10)
+    assert ba_dag.nodes == set(ascii_uppercase[:10])
+
+    er_dag = DAG.erdos_renyi(10, 1, seed=1)
+    er_dag.generate_discrete_parameters(seed=1)
+    er_dag.sample(10)
+    assert er_dag.nodes == set(ascii_uppercase[:10])
