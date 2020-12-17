@@ -6,6 +6,7 @@ import pytest
 import networkx as nx
 import numpy as np
 import pandas as pd
+import igraph
 
 from baynet.utils.dag_io import dag_from_bif
 from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
@@ -90,7 +91,9 @@ def test_DAG_edge_properties(test_dag):
     backward = {("B", "C"), ("B", "D"), ("C", "D")}
     assert dag.edges == dag.directed_edges == forward
     assert dag.reversed_edges == backward
-    assert dag.as_undirected().edges == dag.skeleton_edges == forward | backward
+    skeleton_dag = dag.copy()
+    skeleton_dag.graph.to_undirected()
+    assert skeleton_dag.edges == dag.skeleton_edges == forward | backward
 
 
 def test_DAG_add_edge(test_dag):
@@ -492,9 +495,8 @@ def test_compare(temp_out, test_dag):
 
 
 def test_name_nodes():
-    dag = DAG.Forest_Fire(5, 0.1)
+    dag = DAG(igraph.Graph.Forest_Fire(5, 0.1))
     assert dag.get_node_name(0) == "A"
-    dag = DAG.Forest_Fire(5, 0.1)
     assert dag.get_node_index("A") == 0
 
 
@@ -513,3 +515,20 @@ def test_structure_types():
     er_dag.generate_discrete_parameters(seed=1)
     er_dag.sample(10)
     assert er_dag.nodes == set(ascii_uppercase[:10])
+
+
+def test_copy(test_dag):
+    dag = test_dag
+    dag_copy = dag.copy()
+    assert dag.nodes == dag_copy.nodes
+    assert dag.edges == dag_copy.edges
+
+    dag = DAG.forest_fire(5, 0.1, seed=1)
+    dag_copy = dag.copy()
+    assert dag.nodes == dag_copy.nodes
+    assert dag.edges == dag_copy.edges
+
+
+def test_getattribute_raises(test_dag):
+    with pytest.raises(AttributeError):
+        test_dag.foo()

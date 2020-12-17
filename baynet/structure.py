@@ -51,15 +51,28 @@ def _name_node(index: int) -> str:
     return ''.join(chars)
 
 
-class DAG(igraph.Graph):
+class DAG:
     """Directed Acyclic Graph object, built around igraph.Graph, adapted for bayesian networks."""
 
     # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
-    def __init__(self, buf: Optional[bytes] = None) -> None:
+    def __init__(self, graph_or_buf: Optional[bytes] = None) -> None:
         """Create a DAG object."""
-        super().__init__(directed=True, vertex_attrs={"CPD": None})
-        if buf is not None:
-            dag_io.buf_to_dag(buf, dag=self)
+        self.graph = igraph.Graph(directed=True, vertex_attrs={"CPD": None})
+        if isinstance(graph_or_buf, igraph.Graph):
+            self.graph = graph_or_buf
+            self.name_nodes()
+        elif isinstance(graph_or_buf, bytes):
+            dag_io.buf_to_dag(graph_or_buf, dag=self)
+
+    def __getattribute__(self, name: str) -> Any:
+        """Overwrite object.__getattribute__ to fall back on igraph.Graph where necessary."""
+        try:
+            return super().__getattribute__(name)
+        except AttributeError as errormsg:
+            try:
+                return self.graph.__getattribute__(name)
+            except AttributeError:
+                raise errormsg
 
     def __reduce__(self) -> Tuple:
         """Return representation for Pickle."""
@@ -106,13 +119,16 @@ class DAG(igraph.Graph):
 
     @classmethod
     def barabasi_albert(
-        cls, n_nodes: int, m_outgoing: Union[int, List[int]], seed: Optional[int] = None
+        cls,
+        n_nodes: int,
+        m_outgoing: Union[int, List[int]] = 1,
+        power: float = 0.5,
+        seed: Optional[int] = None,
     ) -> "DAG":
         """Create a DAG using the Barabasi-Albert algorithm."""
         if seed is not None:
             random.seed(seed)
-        dag = cls.Barabasi(n_nodes, m_outgoing, directed=True)
-        dag.name_nodes()
+        dag = cls(igraph.Graph.Barabasi(n_nodes, m=m_outgoing, power=power, directed=True))
         return dag
 
     @classmethod
@@ -120,8 +136,7 @@ class DAG(igraph.Graph):
         """Create a DAG using the Erdos-Renyi algorithm."""
         if seed is not None:
             random.seed(seed)
-        dag = cls.Erdos_Renyi(n_nodes, edge_prob, directed=True)
-        dag.name_nodes()
+        dag = cls(igraph.Graph.Erdos_Renyi(n_nodes, edge_prob, directed=True))
         return dag
 
     @classmethod
@@ -136,8 +151,11 @@ class DAG(igraph.Graph):
         """Create a DAG using the Forest Fire algorithm."""
         if seed is not None:
             random.seed(seed)
-        dag = cls.Forest_Fire(n_nodes, fw_prob, bw_factor=bw_factor, ambs=ambs, directed=True)
-        dag.name_nodes()
+        dag = cls(
+            igraph.Graph.Forest_Fire(
+                n_nodes, fw_prob, bw_factor=bw_factor, ambs=ambs, directed=True
+            )
+        )
         return dag
 
     @staticmethod
@@ -190,19 +208,11 @@ class DAG(igraph.Graph):
 
     def get_node_name(self, node: int) -> str:
         """Convert node index to node name."""
-        try:
-            return self.vs[node]["name"]
-        except KeyError:
-            self.name_nodes()
-            return self.get_node_name(node)
+        return self.vs[node]["name"]
 
     def get_node_index(self, node: str) -> int:
         """Convert node name to node index."""
-        try:
-            return self.vs["name"].index(node)
-        except KeyError:
-            self.name_nodes()
-            return self.get_node_index(node)
+        return self.vs["name"].index(node)
 
     def get_node(self, name: str) -> igraph.Vertex:
         """Get Vertex object by node name."""
@@ -219,7 +229,7 @@ class DAG(igraph.Graph):
         """
         if (source, target) in self.edges:
             raise ValueError(f"Edge {source}->{target} already exists in Graph")
-        super().add_edge(source, target)
+        self.graph.add_edge(source, target)
         assert self.is_dag()
 
     def add_edges(self, edges: List[Tuple[str, str]]) -> None:
@@ -229,7 +239,7 @@ class DAG(igraph.Graph):
                 raise ValueError(f"Edge {source}->{target} already exists in Graph")
         if len(edges) != len(set(edges)):
             raise ValueError("Edges list contains duplicates")
-        super().add_edges(edges)
+        self.graph.add_edges(edges)
         assert self.is_dag()
 
     def get_numpy_adjacency(self, skeleton: bool = False) -> np.ndarray:
@@ -264,7 +274,7 @@ class DAG(igraph.Graph):
         ancestors = list(self.neighborhood(vertices=node, order=order, mode="IN"))
         ancestors.remove(node)
         if len(ancestors) <= 1:
-            return igraph.VertexSeq(self, ancestors)
+            return igraph.VertexSeq(self.graph, ancestors)
         return self.vs[sorted(ancestors)]
 
     def get_descendants(
@@ -280,7 +290,7 @@ class DAG(igraph.Graph):
         ancestors = list(self.neighborhood(vertices=node, order=order, mode="OUT"))
         ancestors.remove(node)
         if len(ancestors) <= 1:
-            return igraph.VertexSeq(self, ancestors)
+            return igraph.VertexSeq(self.graph, ancestors)
         return self.vs[sorted(ancestors)]
 
     def are_neighbours(self, node_a: igraph.Vertex, node_b: igraph.Vertex) -> bool:
@@ -325,7 +335,6 @@ class DAG(igraph.Graph):
         seed: Optional[int] = None,
     ) -> DAG:
         """Set number of levels in each node, for generating discrete data."""
-        self.name_nodes()
         if seed is not None:
             np.random.seed(seed)
         if min_levels is None:
@@ -347,7 +356,6 @@ class DAG(igraph.Graph):
         normalise_alpha: bool = True,
     ) -> DAG:
         """Populate discrete conditional parameter tables for each node."""
-        self.name_nodes()
         try:
             self.vs["levels"]
         except KeyError:
@@ -411,7 +419,6 @@ class DAG(igraph.Graph):
 
     def sample(self, n_samples: int, seed: Optional[int] = None) -> pd.DataFrame:
         """Sample n_samples rows of data from the graph."""
-        self.name_nodes()
         if seed is not None:
             np.random.seed(seed)
         sorted_nodes = self.topological_sorting(mode="out")
@@ -477,9 +484,13 @@ class DAG(igraph.Graph):
 
     def copy(self) -> "DAG":
         """Return a copy."""
-        self_copy = super().copy()
-        for vertex in self_copy.vs:
-            vertex["CPD"] = deepcopy(vertex["CPD"])
+        self_copy = DAG()
+        self_copy.graph = self.graph.copy()
+        try:
+            for vertex in self_copy.graph.vs:
+                vertex["CPD"] = deepcopy(vertex["CPD"])
+        except KeyError:
+            pass
         return self_copy
 
     def plot(self, path: Path = Path().resolve() / 'DAG.png') -> None:
