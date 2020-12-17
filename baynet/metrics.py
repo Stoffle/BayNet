@@ -15,7 +15,7 @@ def _check_args(true_dag: DAG, learnt_dag: DAG, skeleton: bool = False) -> bool:
     return True
 
 
-def false_positive_edges(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> Set[Tuple[str, str]]:
+def false_positive_edges(true_dag: DAG, learnt_dag: DAG, skeleton: bool = False) -> Set[Tuple[str, str]]:
     """Get the set of edges in learnt_dag but not true_dag."""
     _check_args(true_dag, learnt_dag, skeleton)
     if not skeleton:
@@ -23,7 +23,7 @@ def false_positive_edges(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> Set[
     return learnt_dag.skeleton_edges - true_dag.skeleton_edges
 
 
-def true_positive_edges(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> Set[Tuple[str, str]]:
+def true_positive_edges(true_dag: DAG, learnt_dag: DAG, skeleton: bool = False) -> Set[Tuple[str, str]]:
     """Get the set of edges in both learnt_dag and true_dag."""
     _check_args(true_dag, learnt_dag, skeleton)
     if not skeleton:
@@ -31,7 +31,7 @@ def true_positive_edges(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> Set[T
     return true_dag.skeleton_edges & learnt_dag.skeleton_edges
 
 
-def false_negative_edges(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> Set[Tuple[str, str]]:
+def false_negative_edges(true_dag: DAG, learnt_dag: DAG, skeleton: bool = False) -> Set[Tuple[str, str]]:
     """Get the set of edges in true_dag but not learnt_dag."""
     _check_args(true_dag, learnt_dag, skeleton)
     if not skeleton:
@@ -39,7 +39,7 @@ def false_negative_edges(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> Set[
     return true_dag.skeleton_edges - learnt_dag.skeleton_edges
 
 
-def precision(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> float:
+def precision(true_dag: DAG, learnt_dag: DAG, skeleton: bool = False) -> float:
     """Compute (DAG or skeleton) precision of a learnt graph."""
     _check_args(true_dag, learnt_dag, skeleton)
     true_pos = len(true_positive_edges(true_dag, learnt_dag, skeleton))
@@ -47,7 +47,7 @@ def precision(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> float:
     return 0.0 if (all_learnt == 0.0) else true_pos / all_learnt
 
 
-def recall(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> float:
+def recall(true_dag: DAG, learnt_dag: DAG, skeleton: bool = False) -> float:
     """Compute (DAG or skeleton) recall of a learnt graph."""
     args = (true_dag, learnt_dag, skeleton)
     _check_args(*args)
@@ -56,7 +56,7 @@ def recall(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> float:
     return 0.0 if (true_pos + false_neg == 0.0) else true_pos / (true_pos + false_neg)
 
 
-def f1_score(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> float:
+def f1_score(true_dag: DAG, learnt_dag: DAG, skeleton: bool = False) -> float:
     """Compute F1 score (DAG or skeleton) of a learnt graph."""
     args = (true_dag, learnt_dag, skeleton)
     _check_args(*args)
@@ -65,7 +65,7 @@ def f1_score(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> float:
     return 0.0 if (prec + rec == 0.0) else (2 * prec * rec) / (prec + rec)
 
 
-def shd(true_dag: DAG, learnt_dag: DAG, skeleton: bool) -> int:
+def shd(true_dag: DAG, learnt_dag: DAG, skeleton: bool = False) -> int:
     """Compute structural hamming distance (DAG or skeleton) of a learnt graph."""
     _check_args(true_dag, learnt_dag)
     missing = len(false_negative_edges(true_dag, learnt_dag, True)) / 2

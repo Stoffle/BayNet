@@ -4,7 +4,7 @@ from baynet import metrics
 
 def test_check_args(test_dag, reversed_dag):
     test_dag = test_dag
-    test_dag.to_undirected()
+    test_dag.graph.to_undirected()
     reversed_dag = reversed_dag
     assert metrics._check_args(reversed_dag, reversed_dag, False)
     assert metrics._check_args(test_dag, reversed_dag, True)
