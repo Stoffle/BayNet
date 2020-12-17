@@ -59,6 +59,7 @@ setup(
         "pandas >= 0.25",
         "protobuf",
         "graphviz",
+        "pyparsing",
     ],
     extras_require={
         "dev": [
