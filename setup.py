@@ -42,7 +42,7 @@ class CustomDevelopCommand(develop):
 setup(
     cmdclass={"install": CustomInstallCommand, "develop": CustomDevelopCommand},
     name="BayNet",
-    version="0.0.2-dev",
+    version="0.2.0",
     author="Chris Robinson",
     author_email="c.f.robinson@sussex.ac.uk",
     description="(another) Python Bayesian Network library",
