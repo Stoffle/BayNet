@@ -523,7 +523,7 @@ def test_copy(test_dag):
     assert dag.nodes == dag_copy.nodes
     assert dag.edges == dag_copy.edges
 
-    dag = DAG.forest_fire(5, .1, seed=1)
+    dag = DAG.forest_fire(5, 0.1, seed=1)
     dag_copy = dag.copy()
     assert dag.nodes == dag_copy.nodes
     assert dag.edges == dag_copy.edges

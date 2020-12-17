@@ -51,7 +51,7 @@ def _name_node(index: int) -> str:
     return ''.join(chars)
 
 
-class DAG():
+class DAG:
     """Directed Acyclic Graph object, built around igraph.Graph, adapted for bayesian networks."""
 
     # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
@@ -65,6 +65,7 @@ class DAG():
             dag_io.buf_to_dag(graph_or_buf, dag=self)
 
     def __getattribute__(self, name: str) -> Any:
+        """Overwrite object.__getattribute__ to fall back on igraph.Graph where necessary."""
         try:
             return super().__getattribute__(name)
         except AttributeError as errormsg:
@@ -118,7 +119,11 @@ class DAG():
 
     @classmethod
     def barabasi_albert(
-        cls, n_nodes: int, m_outgoing: Union[int, List[int]] = 1, power: float = 0.5, seed: Optional[int] = None
+        cls,
+        n_nodes: int,
+        m_outgoing: Union[int, List[int]] = 1,
+        power: float = 0.5,
+        seed: Optional[int] = None,
     ) -> "DAG":
         """Create a DAG using the Barabasi-Albert algorithm."""
         if seed is not None:
@@ -146,7 +151,11 @@ class DAG():
         """Create a DAG using the Forest Fire algorithm."""
         if seed is not None:
             random.seed(seed)
-        dag = cls(igraph.Graph.Forest_Fire(n_nodes, fw_prob, bw_factor=bw_factor, ambs=ambs, directed=True))
+        dag = cls(
+            igraph.Graph.Forest_Fire(
+                n_nodes, fw_prob, bw_factor=bw_factor, ambs=ambs, directed=True
+            )
+        )
         return dag
 
     @staticmethod
