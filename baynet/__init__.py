@@ -3,7 +3,7 @@ import warnings
 from typing import Any
 from baynet.structure import DAG
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 class Graph(DAG):
     """Temporary thin wrapper to preserve old API."""
