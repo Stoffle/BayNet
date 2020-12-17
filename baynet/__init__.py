@@ -5,6 +5,7 @@ from baynet.structure import DAG
 
 __version__ = "0.2.1"
 
+
 class Graph(DAG):
     """Temporary thin wrapper to preserve old API."""
 
