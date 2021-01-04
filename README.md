@@ -12,7 +12,7 @@ pip install BayNet
 ```python
 from baynet import DAG
 dag = DAG.forest_fire(10, .5, seed=1) # Creates a DAG
-dag.generate_parameters(seed=1) # Samples parameters for each node
+dag.generate_discrete_parameters(alpha=5.0, min_levels=3, max_levels=5, seed=1) # Generates parameters
 data = dag.sample(1_000) # Samples data, returning a pandas DataFrame
 ```
 ### Generate a 5-node Barabasi-Albert (preferential attachment) graph and plot it:

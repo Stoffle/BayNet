@@ -355,7 +355,12 @@ class DAG:
         seed: Optional[int] = None,
         normalise_alpha: bool = True,
     ) -> DAG:
-        """Populate discrete conditional parameter tables for each node."""
+        """
+        Populate discrete conditional parameter tables for each node.
+
+        Samples parameters from a Dirichlet(alpha) (default alpha=20).
+        Samples levels uniformly between min_levels and max_levels (default 2,3 respectively).
+        """
         try:
             self.vs["levels"]
         except KeyError:
