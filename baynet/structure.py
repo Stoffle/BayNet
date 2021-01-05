@@ -1,7 +1,7 @@
 """Graph object."""
 from __future__ import annotations
 from itertools import combinations
-from typing import List, Union, Tuple, Set, Any, Optional, Type, Dict
+from typing import List, Union, Tuple, Set, Any, Optional, Type, Dict, Callable
 from pathlib import Path
 from copy import deepcopy
 from string import ascii_uppercase
@@ -9,6 +9,7 @@ import random
 
 import igraph
 import numpy as np
+from numpy.lib.arraysetops import isin
 import pandas as pd
 from pandas.api.types import is_string_dtype, is_integer_dtype, is_categorical_dtype
 from baynet.utils import dag_io, visualisation
@@ -70,7 +71,11 @@ class DAG:
             return super().__getattribute__(name)
         except AttributeError as errormsg:
             try:
-                return self.graph.__getattribute__(name)
+                attr = self.graph.__getattribute__(name)
+                if callable(attr) and not isinstance(attr, (igraph.VertexSeq, igraph.EdgeSeq)):
+                    # Anywhere a function *might* return a Graph, return a DAG instead
+                    return _graph_method_wrapper(self, attr)
+                return attr
             except AttributeError:
                 raise errormsg
 
@@ -522,3 +527,16 @@ class DAG:
         for vertex in self.vs:
             if vertex.attributes().get('name', None) is None:
                 vertex['name'] = _name_node(vertex.index)
+
+
+def _graph_method_wrapper(dag: DAG, func: Callable) -> Callable:
+    """Call an igraph.Graph function, (where applicable) return DAG instead of igraph.Graph."""
+    def wrapped_method(*args, **kwargs):
+        res = func(*args, **kwargs)
+        if isinstance(res, igraph.Graph):
+            dag_copy = dag.copy()
+            dag_copy.graph = res
+            return dag_copy
+        return res
+    return wrapped_method
+
