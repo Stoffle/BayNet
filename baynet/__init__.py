@@ -2,6 +2,7 @@
 import warnings
 from typing import Any
 from baynet.structure import DAG
+from baynet.structure_generation import *
 
 
 class Graph(DAG):
