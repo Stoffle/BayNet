@@ -529,6 +529,9 @@ def test_copy(test_dag):
     assert dag.edges == dag_copy.edges
 
 
-def test_getattribute_raises(test_dag):
+def test_getattribute(test_dag):
     with pytest.raises(AttributeError):
         test_dag.foo()
+    assert isinstance(test_dag.vs, igraph.VertexSeq)
+    assert isinstance(test_dag.es, igraph.EdgeSeq)
+    assert isinstance(test_dag.as_directed(), DAG)
