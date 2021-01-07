@@ -4,6 +4,7 @@ from typing import Any
 from baynet.structure import DAG
 from baynet.structure_generation import *
 
+__version__ = "0.3.0"
 
 class Graph(DAG):
     """Temporary thin wrapper to preserve old API."""
