@@ -1,11 +1,10 @@
 """Graph object."""
 from __future__ import annotations
 from itertools import combinations
-from typing import List, Union, Tuple, Set, Any, Optional, Type, Dict
+from typing import List, Union, Tuple, Set, Any, Optional, Type, Dict, Callable
 from pathlib import Path
 from copy import deepcopy
 from string import ascii_uppercase
-import random
 
 import igraph
 import numpy as np
@@ -51,15 +50,30 @@ def _name_node(index: int) -> str:
     return ''.join(chars)
 
 
+def _graph_method_wrapper(dag: DAG, func: Callable) -> Callable:
+    """Call an igraph.Graph function, (where applicable) return DAG instead of igraph.Graph."""
+
+    def wrapped_method(*args: Tuple[Any], **kwargs: Dict[Any, Any]) -> Union[Callable, DAG]:
+        res = func(*args, **kwargs)
+        if isinstance(res, igraph.Graph):
+            dag_copy = dag.copy()
+            dag_copy.graph = res
+            return dag_copy
+        return res
+
+    return wrapped_method
+
+
 class DAG:
     """Directed Acyclic Graph object, built around igraph.Graph, adapted for bayesian networks."""
 
     # pylint: disable=unsubscriptable-object, not-an-iterable, arguments-differ
-    def __init__(self, graph_or_buf: Optional[bytes] = None) -> None:
+    def __init__(self, graph_or_buf: Optional[Union[bytes, igraph.Graph]] = None) -> None:
         """Create a DAG object."""
         self.graph = igraph.Graph(directed=True, vertex_attrs={"CPD": None})
         if isinstance(graph_or_buf, igraph.Graph):
             self.graph = graph_or_buf
+            assert self.is_dag()
             self.name_nodes()
         elif isinstance(graph_or_buf, bytes):
             dag_io.buf_to_dag(graph_or_buf, dag=self)
@@ -70,7 +84,11 @@ class DAG:
             return super().__getattribute__(name)
         except AttributeError as errormsg:
             try:
-                return self.graph.__getattribute__(name)
+                attr = self.graph.__getattribute__(name)
+                if callable(attr) and not isinstance(attr, (igraph.VertexSeq, igraph.EdgeSeq)):
+                    # Anywhere a function *might* return a Graph, return a DAG instead
+                    return _graph_method_wrapper(self, attr)
+                return attr
             except AttributeError:
                 raise errormsg
 
@@ -87,16 +105,14 @@ class DAG:
         return dag
 
     @classmethod
-    def from_amat(cls, amat: Union[np.ndarray, List[List[int]]], colnames: List[str]) -> "DAG":
+    def from_amat(
+        cls, amat: Union[np.ndarray, List[List[int]]], colnames: Optional[List[str]] = None
+    ) -> "DAG":
         """Instantiate a Graph object from an adjacency matrix."""
         if isinstance(amat, np.ndarray):
             amat = amat.tolist()
-        if not len(colnames) == len(amat):
-            raise ValueError("Dimensions of amat and colnames do not match")
-        if not isinstance(colnames, list):
-            raise ValueError(
-                f"Graph.from_amat() expected `colnames` of type list, but got {type(colnames)}"
-            )
+        if colnames is None:
+            colnames = [_name_node(i) for i in range(len(amat))]
         dag = cls()
         dag.add_vertices(colnames)
         dag.add_edges(
@@ -117,46 +133,13 @@ class DAG:
         dag.add_edges(other_graph.edges)
         return dag
 
-    @classmethod
-    def barabasi_albert(
-        cls,
-        n_nodes: int,
-        m_outgoing: Union[int, List[int]] = 1,
-        power: float = 0.5,
-        seed: Optional[int] = None,
-    ) -> "DAG":
-        """Create a DAG using the Barabasi-Albert algorithm."""
-        if seed is not None:
-            random.seed(seed)
-        dag = cls(igraph.Graph.Barabasi(n_nodes, m=m_outgoing, power=power, directed=True))
-        return dag
+    @staticmethod
+    def generate(structure_type: str, n_nodes: int, **kwargs: Dict[Any, Any]) -> "DAG":
+        """Call a structure generation function by name."""
+        from . import structure_generation  # pylint: disable=import-outside-toplevel
 
-    @classmethod
-    def erdos_renyi(cls, n_nodes: int, edge_prob: float, seed: Optional[int] = None) -> "DAG":
-        """Create a DAG using the Erdos-Renyi algorithm."""
-        if seed is not None:
-            random.seed(seed)
-        dag = cls(igraph.Graph.Erdos_Renyi(n_nodes, edge_prob, directed=True))
-        return dag
-
-    @classmethod
-    def forest_fire(
-        cls,
-        n_nodes: int,
-        fw_prob: float,
-        bw_factor: float = 0.0,
-        ambs: int = 1,
-        seed: Optional[int] = None,
-    ) -> "DAG":
-        """Create a DAG using the Forest Fire algorithm."""
-        if seed is not None:
-            random.seed(seed)
-        dag = cls(
-            igraph.Graph.Forest_Fire(
-                n_nodes, fw_prob, bw_factor=bw_factor, ambs=ambs, directed=True
-            )
-        )
-        return dag
+        structure_func = getattr(structure_generation, structure_type.lower().replace(" ", "_"))
+        return structure_func(n_nodes, **kwargs)
 
     @staticmethod
     def from_bif(bif: Union[Path, str]) -> "DAG":
@@ -173,7 +156,9 @@ class DAG:
         ):
             return "continuous"
         elif all(
-            type(vertex["CPD"]) in [ConditionalProbabilityTable, ConditionalProbabilityDistribution]
+            isinstance(
+                vertex["CPD"], (ConditionalProbabilityTable, ConditionalProbabilityDistribution)
+            )
             for vertex in self.vs
         ):
             return "mixed"
@@ -214,12 +199,11 @@ class DAG:
         """Convert node name to node index."""
         return self.vs["name"].index(node)
 
-    def get_node(self, name: str) -> igraph.Vertex:
+    def get_node(self, name_or_index: Union[str, int]) -> igraph.Vertex:
         """Get Vertex object by node name."""
-        try:
-            return self.vs[self.get_node_index(name)]
-        except ValueError:
-            raise KeyError(f"Node `{name}` does not appear in DAG.")
+        if isinstance(name_or_index, str):
+            name_or_index = self.get_node_index(name_or_index)
+        return self.vs[name_or_index]
 
     def add_edge(self, source: str, target: str) -> None:
         """
@@ -293,8 +277,14 @@ class DAG:
             return igraph.VertexSeq(self.graph, ancestors)
         return self.vs[sorted(ancestors)]
 
-    def are_neighbours(self, node_a: igraph.Vertex, node_b: igraph.Vertex) -> bool:
+    def are_neighbours(
+        self, node_a: Union[igraph.Vertex, str, int], node_b: Union[igraph.Vertex, str, int]
+    ) -> bool:
         """Check if two nodes are neighbours in the Graph."""
+        if not isinstance(node_a, igraph.Vertex):
+            node_a = self.get_node(node_a)
+        if not isinstance(node_b, igraph.Vertex):
+            node_b = self.get_node(node_b)
         return node_a.index in self.neighborhood(vertices=node_b)
 
     def get_v_structures(self, include_shielded: bool = False) -> Set[Tuple[str, str, str]]:

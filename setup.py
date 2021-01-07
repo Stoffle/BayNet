@@ -60,6 +60,7 @@ setup(
         "protobuf",
         "graphviz",
         "pyparsing",
+        "networkx",
     ],
     extras_require={
         "dev": [
@@ -70,7 +71,6 @@ setup(
             "pytest-cov >= 2.6.0",
             "pre-commit",
             "pydocstyle",
-            "networkx",
         ],
         "ci": ["pytest >= 3.3.2", "pytest-cov >= 2.6.0", "networkx"],
     },

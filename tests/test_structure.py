@@ -1,6 +1,7 @@
 import pickle
 from pathlib import Path
 from string import ascii_uppercase
+from networkx.generators import directed
 
 import pytest
 import networkx as nx
@@ -11,6 +12,7 @@ import igraph
 from baynet.utils.dag_io import dag_from_bif
 from baynet.structure import DAG, _nodes_sorted, _nodes_from_modelstring, _edges_from_modelstring
 from baynet.parameters import ConditionalProbabilityDistribution
+from baynet import structure_generation
 
 
 def test_nodes_sorted():
@@ -39,10 +41,7 @@ def test_DAG_from_amat():
     fully_connected_amat = np.tril(np.ones((4, 4)), -1)
     fully_connected_graph = DAG.from_amat(fully_connected_amat, list("ABCD"))
 
-    with pytest.raises(ValueError):
-        DAG.from_amat(unconnected_amat, ["A", "B", "C"])
-    with pytest.raises(ValueError):
-        DAG.from_amat(unconnected_amat, "ABCD")
+    assert DAG.from_amat(unconnected_amat).nodes == {"A", "B", "C", "D"}
 
     assert np.all(unconnected_graph.get_numpy_adjacency() == unconnected_amat)
     assert np.all(unconnected_graph_list.get_numpy_adjacency() == unconnected_amat)
@@ -204,6 +203,8 @@ def test_DAG_are_neighbours(test_dag):
     assert dag.are_neighbours(b, c)
     assert dag.are_neighbours(b, d)
     assert dag.are_neighbours(c, d)
+    assert dag.are_neighbours(1, 2)
+    assert dag.are_neighbours("B", "C")
 
 
 def test_DAG_get_v_structures(test_dag, reversed_dag, partial_dag):
@@ -410,7 +411,7 @@ def test_DAG_mutilate(test_dag):
     assert all(dag.sample(100)['C'] == '1')
     assert dag.get_node('B')['CPD'].parents == ["C"]
     assert dag.get_node('B')['CPD'].array.shape == (2, 2)
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         dag.get_node('D')
 
 
@@ -495,26 +496,32 @@ def test_compare(temp_out, test_dag):
 
 
 def test_name_nodes():
-    dag = DAG(igraph.Graph.Forest_Fire(5, 0.1))
+    dag = DAG(igraph.Graph(2, directed=True))
     assert dag.get_node_name(0) == "A"
     assert dag.get_node_index("A") == 0
 
 
-def test_structure_types():
-    ff_dag = DAG.forest_fire(10, 0.1, seed=1)
-    ff_dag.generate_discrete_parameters(seed=1)
-    ff_dag.sample(10)
-    assert ff_dag.nodes == set(ascii_uppercase[:10])
+@pytest.mark.parametrize(
+    "structure_type",
+    ["forest fire", "Barabasi Albert", "erdos_renyi", "watts_strogatz", "ide_cozman", "waxman"],
+)
+def test_structure_types(structure_type):
+    dag_1 = DAG.generate(structure_type, 10, seed=1)
+    dag_2 = getattr(structure_generation, structure_type.lower().replace(" ", "_"))(10, seed=1)
+    assert dag_1.is_dag()
+    assert dag_1.nodes == dag_2.nodes == set(ascii_uppercase[:10])
+    assert dag_1.edges == dag_2.edges > set()
 
-    ba_dag = DAG.barabasi_albert(10, 1, seed=1)
-    ba_dag.generate_discrete_parameters(seed=1)
-    ba_dag.sample(10)
-    assert ba_dag.nodes == set(ascii_uppercase[:10])
 
-    er_dag = DAG.erdos_renyi(10, 1, seed=1)
-    er_dag.generate_discrete_parameters(seed=1)
-    er_dag.sample(10)
-    assert er_dag.nodes == set(ascii_uppercase[:10])
+def test_icdag_degree_caps():
+    dag = DAG.generate("ide_cozman", 10, burn_in=1000, max_indegree=2, seed=1)
+    assert max(dag.indegree()) <= 2
+    assert 2 < max(dag.outdegree()) <= 3, "Make sure out/degree isn't capped when indegree is set"
+    dag = DAG.generate("ide_cozman", 10, burn_in=1000, max_outdegree=2, seed=1)
+    assert max(dag.outdegree()) <= 2
+    assert 2 < max(dag.indegree()) <= 3, "Make sure in/degree isn't capped when outdegree is set"
+    dag = DAG.generate("ide_cozman", 10, burn_in=1000, max_degree=2, seed=1)
+    assert max(dag.degree()) <= 2
 
 
 def test_copy(test_dag):
@@ -523,12 +530,15 @@ def test_copy(test_dag):
     assert dag.nodes == dag_copy.nodes
     assert dag.edges == dag_copy.edges
 
-    dag = DAG.forest_fire(5, 0.1, seed=1)
+    dag = DAG.generate("forest_fire", 10, seed=1)
     dag_copy = dag.copy()
     assert dag.nodes == dag_copy.nodes
     assert dag.edges == dag_copy.edges
 
 
-def test_getattribute_raises(test_dag):
+def test_getattribute(test_dag):
     with pytest.raises(AttributeError):
         test_dag.foo()
+    assert isinstance(test_dag.vs, igraph.VertexSeq)
+    assert isinstance(test_dag.es, igraph.EdgeSeq)
+    assert isinstance(test_dag.as_directed(), DAG)

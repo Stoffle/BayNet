@@ -20,7 +20,7 @@ data = dag.sample(1_000) # Samples data, returning a pandas DataFrame
 from baynet import DAG
 DAG.barabasi_albert(5, seed=1).plot() # Saves 'DAG.png' in working directory
 ```
-![Example DAG.png](example_DAG.png)
+![Example DAG.png](https://raw.githubusercontent.com/Stoffle/BayNet/master/example_DAG.png)
 
 
 ### Generate two 5-node Erdos-Renyi DAGs and compare them:
@@ -32,7 +32,7 @@ print(metrics.shd(dag_1, dag_2)) # prints DAG SHD, in this case 6
 print(metrics.shd(dag_1, dag_2, skeleton=True)) # prints skeleton SHD, in this case 3
 dag_1.compare(dag_2).plot() # saves 'comparison.png' in working directory
 ```
-![Example comparison.png](example_comparison.png)
+![Example comparison.png](https://raw.githubusercontent.com/Stoffle/BayNet/master/example_comparison.png)
 
 Taking dag_1 to be the ground truth and dag_2 to be a structure learning result:
 - Dashed red arcs represent false negatives
