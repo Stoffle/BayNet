@@ -7,7 +7,6 @@ import igraph
 import networkx as nx
 
 import numpy as np
-from numpy.lib.arraysetops import isin
 
 from .structure import DAG
 
@@ -64,7 +63,6 @@ def watts_strogatz(
     if seed is not None:
         random.seed(seed)
     return _make_dag(igraph.Graph.Watts_Strogatz(dim=1, size=n_nodes, nei=nei, p=rw_prob))
-
 
 
 def ide_cozman(
@@ -125,10 +123,8 @@ def waxman(
     """Create a Waxman random graph, converted to DAG."""
     if seed is not None:
         random.seed(seed)
-    # return DAG.from_amat(
-    #     np.tril(nx.to_numpy_array(nx.waxman_graph(n=n_nodes, alpha=alpha, beta=beta)), -1)
-    # )
     return _make_dag(DAG.from_other(nx.waxman_graph(n=n_nodes, alpha=alpha, beta=beta)))
+
 
 def _make_dag(graph: igraph.Graph) -> DAG:
     """Make an arbitrary graph (un/directed, a/cyclic) into a DAG."""
@@ -136,4 +132,3 @@ def _make_dag(graph: igraph.Graph) -> DAG:
     dag.graph = graph
     amat = np.tril(dag.get_numpy_adjacency(skeleton=True), -1)
     return DAG.from_amat(amat)
-
