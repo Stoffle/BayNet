@@ -1,6 +1,7 @@
 import pickle
 from pathlib import Path
 from string import ascii_uppercase
+from networkx.generators import directed
 
 import pytest
 import networkx as nx
@@ -495,7 +496,7 @@ def test_compare(temp_out, test_dag):
 
 
 def test_name_nodes():
-    dag = DAG(igraph.Graph.Forest_Fire(5, 0.1))
+    dag = DAG(igraph.Graph(2, directed=True))
     assert dag.get_node_name(0) == "A"
     assert dag.get_node_index("A") == 0
 
@@ -507,6 +508,7 @@ def test_name_nodes():
 def test_structure_types(structure_type):
     dag_1 = DAG.generate(structure_type, 10, seed=1)
     dag_2 = getattr(structure_generation, structure_type.lower().replace(" ", "_"))(10, seed=1)
+    assert dag_1.is_dag()
     assert dag_1.nodes == dag_2.nodes == set(ascii_uppercase[:10])
     assert dag_1.edges == dag_2.edges > set()
 

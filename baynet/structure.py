@@ -73,6 +73,7 @@ class DAG:
         self.graph = igraph.Graph(directed=True, vertex_attrs={"CPD": None})
         if isinstance(graph_or_buf, igraph.Graph):
             self.graph = graph_or_buf
+            assert self.is_dag()
             self.name_nodes()
         elif isinstance(graph_or_buf, bytes):
             dag_io.buf_to_dag(graph_or_buf, dag=self)

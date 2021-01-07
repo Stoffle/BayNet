@@ -7,6 +7,7 @@ import igraph
 import networkx as nx
 
 import numpy as np
+from numpy.lib.arraysetops import isin
 
 from .structure import DAG
 
@@ -53,7 +54,7 @@ def erdos_renyi(n_nodes: int, *, edge_prob: float = 0.5, seed: Optional[int] = N
     """Create a DAG using the Erdos-Renyi algorithm."""
     if seed is not None:
         random.seed(seed)
-    return DAG(igraph.Graph.Erdos_Renyi(n_nodes, edge_prob, directed=True))
+    return _make_dag(igraph.Graph.Erdos_Renyi(n_nodes, edge_prob, directed=True))
 
 
 def watts_strogatz(
@@ -62,7 +63,8 @@ def watts_strogatz(
     """Create a DAG using the Watts-Strogatz (Small World) algorithm."""
     if seed is not None:
         random.seed(seed)
-    return DAG(igraph.Graph.Watts_Strogatz(dim=1, size=n_nodes, nei=nei, p=rw_prob))
+    return _make_dag(igraph.Graph.Watts_Strogatz(dim=1, size=n_nodes, nei=nei, p=rw_prob))
+
 
 
 def ide_cozman(
@@ -123,6 +125,15 @@ def waxman(
     """Create a Waxman random graph, converted to DAG."""
     if seed is not None:
         random.seed(seed)
-    return DAG.from_amat(
-        np.tril(nx.to_numpy_array(nx.waxman_graph(n=n_nodes, alpha=alpha, beta=beta)), -1)
-    )
+    # return DAG.from_amat(
+    #     np.tril(nx.to_numpy_array(nx.waxman_graph(n=n_nodes, alpha=alpha, beta=beta)), -1)
+    # )
+    return _make_dag(DAG.from_other(nx.waxman_graph(n=n_nodes, alpha=alpha, beta=beta)))
+
+def _make_dag(graph: igraph.Graph) -> DAG:
+    """Make an arbitrary graph (un/directed, a/cyclic) into a DAG."""
+    dag = DAG()
+    dag.graph = graph
+    amat = np.tril(dag.get_numpy_adjacency(skeleton=True), -1)
+    return DAG.from_amat(amat)
+
