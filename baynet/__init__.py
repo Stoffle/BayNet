@@ -3,6 +3,7 @@ import warnings
 from typing import Any
 from baynet.structure import DAG
 from baynet.structure_generation import *
+from baynet.interventions import *
 
 
 class Graph(DAG):
