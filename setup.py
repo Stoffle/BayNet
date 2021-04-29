@@ -61,7 +61,7 @@ setup(
         "graphviz",
         "pyparsing",
         "networkx",
-        "yaml",
+        "pyyaml",
     ],
     extras_require={
         "dev": [
