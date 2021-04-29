@@ -40,7 +40,6 @@ def test_odds_ratio_config(level_1: Union[str, int], level_2: Union[str, int]):
             ]
     }
     ors = bn.adjusted_odds_ratio(config)
-    breakpoint()
     assert all([isinstance(odds_ratio, float) for key, odds_ratio in ors.items()])
 
 
@@ -50,4 +49,6 @@ def test_odds_ratio_all(level_1: Union[str, int], level_2: Union[str, int]):
     Test both string and int input data.
     """
     bn = _test_bn(level_1=level_1, level_2=level_2)
-    ors = bn.adjusted_odds_ratio_all()
+    ors = bn.adjusted_odds_ratio_all("A")
+    assert all([isinstance(odds_ratio, float) for key, odds_ratio in ors.items()])
+

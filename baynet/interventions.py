@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Union, Tuple, List, TYPE_CHECKING
+from typing import Dict, Union, Tuple, List, TYPE_CHECKING, Optional
 
 import numpy as np
 
@@ -57,8 +57,8 @@ def odds_ratio(
     return subject_ratio / reference_ratio
 
 
-def odds_ratio_config(bn: DAG, config) -> Dict[Tuple[str, int]]:
-    results: Dict[Tuple[str, int]] = {}
+def odds_ratio_config(bn: DAG, config) -> Dict[Tuple[str, int], float]:
+    results: Dict[Tuple[str, int], float] = {}
     if not isinstance(config["target_subjects"], list):
         config["target_subjects"] = [config["target_subjects"]]
     for target_subject in config["target_subjects"]:
@@ -76,5 +76,27 @@ def odds_ratio_config(bn: DAG, config) -> Dict[Tuple[str, int]]:
     return results
 
 
-def odds_ratio_all(self, target, target_reference, target_subjects):
-    return None
+def odds_ratio_all(bn: DAG, target: str, target_reference: Optional[str]) -> Dict[Tuple[str, int], float]:
+    def _levels(node: str):
+        return sorted(bn.get_node(node)["CPD"].levels)
+
+    def _intervention(node: str):
+        levels = _levels(node)
+        return {
+            "intervention_node": node,
+            "intervention_reference": levels[0],
+            "intervention_subjects": levels[1:]
+        }
+
+    target_levels = _levels(target)
+    if not target_reference:
+        target_reference = target_levels[0]
+
+    config = {
+        "target_node": target,
+        "target_reference": target_reference,
+        "target_subjects": list(set(target_levels) - set(target_reference)),
+        "interventions": [_intervention(n) for n in list(bn.nodes - set(target))]
+    }
+    return odds_ratio_config(bn=bn, config=config)
+

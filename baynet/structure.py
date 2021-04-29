@@ -1,5 +1,7 @@
 """Graph object."""
 from __future__ import annotations
+
+import itertools
 from itertools import combinations
 from typing import List, Union, Tuple, Set, Any, Optional, Type, Dict, Callable
 from pathlib import Path
@@ -105,6 +107,14 @@ class DAG:
         dag = cls()
         dag.add_vertices(_nodes_from_modelstring(modelstring))
         dag.add_edges(_edges_from_modelstring(modelstring))
+        return dag
+
+    @classmethod
+    def from_edges(cls, edges: Set[Tuple[str, str]]) -> "DAG":
+        """Instantiate a Graph object from a set of edges."""
+        dag = cls()
+        dag.add_vertices(_nodes_sorted({node for edge in edges for node in edge}))
+        dag.add_edges(edges)
         return dag
 
     @classmethod
@@ -516,6 +526,21 @@ class DAG:
             if vertex.attributes().get('name', None) is None:
                 vertex['name'] = _name_node(vertex.index)
 
+    def get_equivalence_class(self, shielded=True) -> Set[DAG]:
+        """
+        Get the Markov equivalence class of the DAG object.
+        """
+        get_pairs = lambda x: [(x[0], x[1]), (x[2], x[1])]
+        v_pairs = {vi for v in self.get_v_structures(include_shielded=shielded) for vi in get_pairs(v)}
+        non_v_edges = self.edges - v_pairs
+        perms = list(itertools.product([0, 1], repeat=len(non_v_edges)))
+        flip = lambda edge, f: edge if not f else (edge[1], edge[0])
+        dags = set()
+        for p in perms:
+            edges = {flip(edge, pi) for edge, pi in zip(non_v_edges, p)}
+            dags.add(DAG.from_edges(v_pairs | edges))
+        return dags
+
     def adjusted_odds_ratio(self, config: Union[dict, Path]):
         if isinstance(config, Path):
             try:
@@ -526,12 +551,8 @@ class DAG:
         return odds_ratio_config(self, config)
 
     def adjusted_odds_ratio_all(
-        self,
-        target: str,
-        target_reference: Optional[Union[str, int]] = None,
-        target_subjects: Optional[Union[str, int, List[int], List[str]]] = None
-    ):
-        odds_ratio_all(self, target, target_reference, target_subjects)
-
-
-
+            self,
+            target: str,
+            target_reference: Optional[Union[str, int]] = None
+    ) -> Dict[Tuple[str, int], float]:
+        return odds_ratio_all(self, target, target_reference)
