@@ -50,16 +50,16 @@ def test_DAG_from_amat():
     assert fully_connected_graph.nodes == unconnected_graph.nodes == {"A", "B", "C", "D"}
     assert unconnected_graph.edges == set()
     assert (
-            fully_connected_graph.edges
-            == fully_connected_graph.directed_edges
-            == {
-                ('C', 'A'),
-                ('B', 'A'),
-                ('D', 'B'),
-                ('D', 'C'),
-                ('D', 'A'),
-                ('C', 'B'),
-            }
+        fully_connected_graph.edges
+        == fully_connected_graph.directed_edges
+        == {
+            ('C', 'A'),
+            ('B', 'A'),
+            ('D', 'B'),
+            ('D', 'C'),
+            ('D', 'A'),
+            ('C', 'B'),
+        }
     )
 
 
@@ -134,56 +134,56 @@ def test_DAG_get_modelstring(test_dag, test_modelstring, reversed_dag, reversed_
 def test_DAG_get_ancestors(test_dag):
     dag = test_dag
     assert (
-            dag.get_ancestors("A")['name']
-            == dag.get_ancestors(dag.vs[0])['name']
-            == dag.get_ancestors(0)['name']
-            == []
+        dag.get_ancestors("A")['name']
+        == dag.get_ancestors(dag.vs[0])['name']
+        == dag.get_ancestors(0)['name']
+        == []
     )
     assert (
-            dag.get_ancestors("B")['name']
-            == dag.get_ancestors(dag.vs[1])['name']
-            == dag.get_ancestors(1)['name']
-            == ['C', 'D']
+        dag.get_ancestors("B")['name']
+        == dag.get_ancestors(dag.vs[1])['name']
+        == dag.get_ancestors(1)['name']
+        == ['C', 'D']
     )
     assert (
-            dag.get_ancestors("C")['name']
-            == dag.get_ancestors(dag.vs[2])['name']
-            == dag.get_ancestors(2)['name']
-            == ['D']
+        dag.get_ancestors("C")['name']
+        == dag.get_ancestors(dag.vs[2])['name']
+        == dag.get_ancestors(2)['name']
+        == ['D']
     )
     assert (
-            dag.get_ancestors("D")['name']
-            == dag.get_ancestors(dag.vs[3])['name']
-            == dag.get_ancestors(3)['name']
-            == []
+        dag.get_ancestors("D")['name']
+        == dag.get_ancestors(dag.vs[3])['name']
+        == dag.get_ancestors(3)['name']
+        == []
     )
 
 
 def test_DAG_get_descendants(reversed_dag):
     dag = reversed_dag
     assert (
-            dag.get_descendants("A")['name']
-            == dag.get_descendants(dag.vs[0])['name']
-            == dag.get_descendants(0)['name']
-            == []
+        dag.get_descendants("A")['name']
+        == dag.get_descendants(dag.vs[0])['name']
+        == dag.get_descendants(0)['name']
+        == []
     )
     assert (
-            dag.get_descendants("B")['name']
-            == dag.get_descendants(dag.vs[1])['name']
-            == dag.get_descendants(1)['name']
-            == ['C', 'D']
+        dag.get_descendants("B")['name']
+        == dag.get_descendants(dag.vs[1])['name']
+        == dag.get_descendants(1)['name']
+        == ['C', 'D']
     )
     assert (
-            dag.get_descendants("C")['name']
-            == dag.get_descendants(dag.vs[2])['name']
-            == dag.get_descendants(2)['name']
-            == ['D']
+        dag.get_descendants("C")['name']
+        == dag.get_descendants(dag.vs[2])['name']
+        == dag.get_descendants(2)['name']
+        == ['D']
     )
     assert (
-            dag.get_descendants("D")['name']
-            == dag.get_descendants(dag.vs[3])['name']
-            == dag.get_descendants(3)['name']
-            == []
+        dag.get_descendants("D")['name']
+        == dag.get_descendants(dag.vs[3])['name']
+        == dag.get_descendants(3)['name']
+        == []
     )
 
 
@@ -442,7 +442,7 @@ def test_pickling(test_dag):
 
 def test_bif_parser():
     bif_path = (
-            Path(__file__).parent.parent / 'baynet' / 'utils' / 'bif_library' / 'earthquake.bif'
+        Path(__file__).parent.parent / 'baynet' / 'utils' / 'bif_library' / 'earthquake.bif'
     ).resolve()
 
     dag = dag_from_bif(bif_path)
@@ -463,8 +463,8 @@ def test_bif_library():
     all_bifs = [
         p.stem
         for p in (Path(__file__).parent.parent / 'baynet' / 'utils' / 'bif_library')
-            .resolve()
-            .glob('*.bif')
+        .resolve()
+        .glob('*.bif')
     ]
     for bif in all_bifs[:1]:
         try:
@@ -553,5 +553,6 @@ def test_equivalence_class():
         "[A|E][B][C|A:B][D|B][E]",
         "[A|E][B|D][C|A:B][D][E]",
     }
-    assert output_modelstrings == {output.get_modelstring() for output in dag.get_equivalence_class()}
-
+    assert output_modelstrings == {
+        output.get_modelstring() for output in dag.get_equivalence_class()
+    }

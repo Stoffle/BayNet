@@ -4,6 +4,7 @@ from __future__ import annotations
 import itertools
 from itertools import combinations
 from typing import List, Union, Tuple, Set, Any, Optional, Type, Dict, Callable
+from typing_extensions import Literal
 from pathlib import Path
 from copy import deepcopy
 from string import ascii_uppercase
@@ -16,7 +17,7 @@ from baynet.utils import dag_io, visualisation
 
 import yaml
 
-from .interventions import odds_ratio_config, odds_ratio_all
+from .interventions import odds_ratio_config, odds_ratio_all, odds_ratio_aggregator
 from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
 
 
@@ -119,7 +120,7 @@ class DAG:
 
     @classmethod
     def from_amat(
-            cls, amat: Union[np.ndarray, List[List[int]]], colnames: Optional[List[str]] = None
+        cls, amat: Union[np.ndarray, List[List[int]]], colnames: Optional[List[str]] = None
     ) -> "DAG":
         """Instantiate a Graph object from an adjacency matrix."""
         if isinstance(amat, np.ndarray):
@@ -165,14 +166,14 @@ class DAG:
         if all(isinstance(vertex["CPD"], ConditionalProbabilityTable) for vertex in self.vs):
             return "discrete"
         elif all(
-                isinstance(vertex["CPD"], ConditionalProbabilityDistribution) for vertex in self.vs
+            isinstance(vertex["CPD"], ConditionalProbabilityDistribution) for vertex in self.vs
         ):
             return "continuous"
         elif all(
-                isinstance(
-                    vertex["CPD"], (ConditionalProbabilityTable, ConditionalProbabilityDistribution)
-                )
-                for vertex in self.vs
+            isinstance(
+                vertex["CPD"], (ConditionalProbabilityTable, ConditionalProbabilityDistribution)
+            )
+            for vertex in self.vs
         ):
             return "mixed"
         return None
@@ -259,7 +260,7 @@ class DAG:
         return modelstring
 
     def get_ancestors(
-            self, node: Union[str, int, igraph.Vertex], only_parents: bool = False
+        self, node: Union[str, int, igraph.Vertex], only_parents: bool = False
     ) -> igraph.VertexSeq:
         """Return an igraph.VertexSeq of ancestors for given node (string or node index)."""
         if isinstance(node, str):
@@ -275,7 +276,7 @@ class DAG:
         return self.vs[sorted(ancestors)]
 
     def get_descendants(
-            self, node: Union[str, int, igraph.Vertex], only_children: bool = False
+        self, node: Union[str, int, igraph.Vertex], only_children: bool = False
     ) -> igraph.VertexSeq:
         """Return an igraph.VertexSeq of descendants for given node (string or node index)."""
         if isinstance(node, str):
@@ -291,7 +292,7 @@ class DAG:
         return self.vs[sorted(ancestors)]
 
     def are_neighbours(
-            self, node_a: Union[igraph.Vertex, str, int], node_b: Union[igraph.Vertex, str, int]
+        self, node_a: Union[igraph.Vertex, str, int], node_b: Union[igraph.Vertex, str, int]
     ) -> bool:
         """Check if two nodes are neighbours in the Graph."""
         if not isinstance(node_a, igraph.Vertex):
@@ -319,11 +320,11 @@ class DAG:
         return set(v_structures)
 
     def generate_continuous_parameters(
-            self,
-            possible_weights: Optional[List[float]] = None,
-            mean: Optional[float] = None,
-            std: Optional[float] = None,
-            seed: Optional[int] = None,
+        self,
+        possible_weights: Optional[List[float]] = None,
+        mean: Optional[float] = None,
+        std: Optional[float] = None,
+        seed: Optional[int] = None,
     ) -> DAG:
         """Populate continuous conditional distributions for each node."""
         for vertex in self.vs:
@@ -332,10 +333,10 @@ class DAG:
         return self
 
     def generate_levels(
-            self,
-            min_levels: Optional[int] = None,
-            max_levels: Optional[int] = None,
-            seed: Optional[int] = None,
+        self,
+        min_levels: Optional[int] = None,
+        max_levels: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> DAG:
         """Set number of levels in each node, for generating discrete data."""
         if seed is not None:
@@ -351,12 +352,12 @@ class DAG:
         return self
 
     def generate_discrete_parameters(
-            self,
-            alpha: Optional[float] = None,
-            min_levels: Optional[int] = None,
-            max_levels: Optional[int] = None,
-            seed: Optional[int] = None,
-            normalise_alpha: bool = True,
+        self,
+        alpha: Optional[float] = None,
+        min_levels: Optional[int] = None,
+        max_levels: Optional[int] = None,
+        seed: Optional[int] = None,
+        normalise_alpha: bool = True,
     ) -> DAG:
         """
         Populate discrete conditional parameter tables for each node.
@@ -376,11 +377,11 @@ class DAG:
         return self
 
     def estimate_parameters(
-            self,
-            data: pd.DataFrame,
-            method: str = "mle",
-            infer_levels: bool = False,
-            method_args: Optional[Dict[str, Union[int, float]]] = None,
+        self,
+        data: pd.DataFrame,
+        method: str = "mle",
+        infer_levels: bool = False,
+        method_args: Optional[Dict[str, Union[int, float]]] = None,
     ) -> None:
         """Estimate conditional probabilities based on supplied data."""
         data = data.copy()
@@ -390,8 +391,8 @@ class DAG:
             else:
                 for vertex in self.vs:
                     if not (
-                            is_integer_dtype(data[vertex['name']])
-                            or is_string_dtype(data[vertex['name']])
+                        is_integer_dtype(data[vertex['name']])
+                        or is_string_dtype(data[vertex['name']])
                     ):
                         raise ValueError(
                             f"Unrecognised DataFrame dtype: {data[vertex['name']].dtype}"
@@ -434,7 +435,7 @@ class DAG:
         if all(isinstance(vertex['CPD'], ConditionalProbabilityTable) for vertex in self.vs):
             dtype = int
         elif all(
-                isinstance(vertex['CPD'], ConditionalProbabilityDistribution) for vertex in self.vs
+            isinstance(vertex['CPD'], ConditionalProbabilityDistribution) for vertex in self.vs
         ):
             dtype = float
         else:
@@ -526,33 +527,46 @@ class DAG:
             if vertex.attributes().get('name', None) is None:
                 vertex['name'] = _name_node(vertex.index)
 
-    def get_equivalence_class(self, shielded=True) -> Set[DAG]:
+    def get_equivalence_class(self, shielded=True, data: pd.DataFrame = None) -> Set[DAG]:
         """
         Get the Markov equivalence class of the DAG object.
+
+        If data is provided, a set of learnt BNs, rather than DAGs, will be provided.
         """
         get_pairs = lambda x: [(x[0], x[1]), (x[2], x[1])]
-        v_pairs = {vi for v in self.get_v_structures(include_shielded=shielded) for vi in get_pairs(v)}
+        v_pairs = {
+            vi for v in self.get_v_structures(include_shielded=shielded) for vi in get_pairs(v)
+        }
         non_v_edges = self.edges - v_pairs
         perms = list(itertools.product([0, 1], repeat=len(non_v_edges)))
         flip = lambda edge, f: edge if not f else (edge[1], edge[0])
         dags = set()
         for p in perms:
             edges = {flip(edge, pi) for edge, pi in zip(non_v_edges, p)}
-            dags.add(DAG.from_edges(v_pairs | edges))
+            dag = DAG.from_edges(v_pairs | edges)
+            if data is not None:
+                dag.estimate_parameters(data=data, infer_levels=True)
+            dags.add(dag)
         return dags
 
-    def adjusted_odds_ratio(self, config: Union[dict, Path]):
-        if isinstance(config, Path):
-            try:
-                with open(config, "r") as f:
-                    config = yaml.load(f, yaml.FullLoader)
-            except FileNotFoundError:
-                raise FileNotFoundError(f"Config file not found at: {config}")
-        return odds_ratio_config(self, config)
-
-    def adjusted_odds_ratio_all(
+    def adjusted_odds_ratio(
+        self,
+        *,
+        config: Optional[Union[dict, Path]] = None,
+        target: Optional[str] = None,
+        target_reference: Optional[Union[str, int]] = None,
+        cpdag: bool = False,
+        data: pd.DataFrame = None,
+        aggregation: Optional[Literal['mean', 'median']] = "median",
+        bounds: Optional[Literal['minmax', 'quartiles']] = "minmax",
+    ) -> Dict[Tuple[str, int], Union[float, Tuple[float]]]:
+        return odds_ratio_aggregator(
             self,
-            target: str,
-            target_reference: Optional[Union[str, int]] = None
-    ) -> Dict[Tuple[str, int], float]:
-        return odds_ratio_all(self, target, target_reference)
+            config=config,
+            target=target,
+            target_reference=target_reference,
+            cpdag=cpdag,
+            data=data,
+            aggregation=aggregation,
+            bounds=bounds,
+        )
