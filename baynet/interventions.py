@@ -41,7 +41,7 @@ def posterior_ratio(
     target_reference: Union[str, int],
     target_subject: Union[str, int],
 ) -> float:
-    """Calculates the ratio of collapsed posterior of target level / reference level."""
+    """Calculate the ratio of collapsed posterior of target level / reference level."""
     reference_idx = bayesian_network.get_node(target)["CPD"].levels.index(str(target_reference))
     subject_idx = bayesian_network.get_node(target)["CPD"].levels.index(str(target_subject))
     target_marginal = collapse_posterior(bayesian_network=bayesian_network, target=target)
@@ -196,7 +196,7 @@ def odds_ratio_aggregator(
             cpdag_results = {k: [dic[k] for dic in temp] for k in temp[0]}
         else:
             results = odds_ratio_all(bayesian_network, target, target_reference)
-    if not results:
+    if not results and not cpdag_results:
         raise ValueError("Either target or config must be set. Both cannot be set.")
     if not cpdag:
         return results
