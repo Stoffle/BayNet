@@ -4,20 +4,18 @@ from __future__ import annotations
 import itertools
 from itertools import combinations
 from typing import List, Union, Tuple, Set, Any, Optional, Type, Dict, Callable
-from typing_extensions import Literal
 from pathlib import Path
 from copy import deepcopy
 from string import ascii_uppercase
 
+from typing_extensions import Literal
 import igraph
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_string_dtype, is_integer_dtype, is_categorical_dtype
 from baynet.utils import dag_io, visualisation
 
-import yaml
-
-from .interventions import odds_ratio_config, odds_ratio_all, odds_ratio_aggregator
+from .interventions import odds_ratio_aggregator
 from .parameters import ConditionalProbabilityDistribution, ConditionalProbabilityTable
 
 
@@ -230,7 +228,7 @@ class DAG:
         self.graph.add_edge(source, target)
         assert self.is_dag()
 
-    def add_edges(self, edges: List[Tuple[str, str]]) -> None:
+    def add_edges(self, edges: Union[Set[Tuple[str, str]], List[Tuple[str, str]]]) -> None:
         """Add multiple edges from a list of tuples, each containing (from, to) as strings."""
         for source, target in edges:
             if (source, target) in self.edges:
@@ -527,7 +525,7 @@ class DAG:
             if vertex.attributes().get('name', None) is None:
                 vertex['name'] = _name_node(vertex.index)
 
-    def get_equivalence_class(self, shielded=True, data: pd.DataFrame = None) -> Set[DAG]:
+    def get_equivalence_class(self, shielded: bool = True, data: pd.DataFrame = None) -> Set[DAG]:
         """
         Get the Markov equivalence class of the DAG object.
 
@@ -541,8 +539,8 @@ class DAG:
         perms = list(itertools.product([0, 1], repeat=len(non_v_edges)))
         flip = lambda edge, f: edge if not f else (edge[1], edge[0])
         dags = set()
-        for p in perms:
-            edges = {flip(edge, pi) for edge, pi in zip(non_v_edges, p)}
+        for perm in perms:
+            edges = {flip(edge, pi) for edge, pi in zip(non_v_edges, perm)}
             dag = DAG.from_edges(v_pairs | edges)
             if data is not None:
                 dag.estimate_parameters(data=data, infer_levels=True)
@@ -557,9 +555,23 @@ class DAG:
         target_reference: Optional[Union[str, int]] = None,
         cpdag: bool = False,
         data: pd.DataFrame = None,
-        aggregation: Optional[Literal['mean', 'median']] = "median",
+        aggregation: Literal['mean', 'median'] = "median",
         bounds: Optional[Literal['minmax', 'quartiles']] = "minmax",
-    ) -> Dict[Tuple[str, int], Union[float, Tuple[float]]]:
+    ) -> Union[Dict[tuple, Dict[str, float]], Dict[tuple, float]]:
+        """
+        Calculate the adjusted odds ratio for an intervention.
+
+        :param config: A config file specifying what interventions to perform.
+        :param target: The outcome variable where we want to measure effected change.
+        :param target_reference: The reference level of the outcome variable
+        :param cpdag: A boolean specifying whether to calculate odds ratios for
+        all bayesian networks in the equivalence class.
+        :param data: A pd.DataFrame object which must be given if cpdag is True
+        :param aggregation: The aggregation function to use to combine the many
+        values output when cpdag is True. Options: mean / median.
+        :param bounds: The bound function to use when combining multiple values.
+        Options are: minmax / quartiles.
+        """
         return odds_ratio_aggregator(
             self,
             config=config,
