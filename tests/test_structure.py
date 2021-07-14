@@ -542,3 +542,17 @@ def test_getattribute(test_dag):
     assert isinstance(test_dag.vs, igraph.VertexSeq)
     assert isinstance(test_dag.es, igraph.EdgeSeq)
     assert isinstance(test_dag.as_directed(), DAG)
+
+
+def test_equivalence_class():
+    input_modelstring = "[C|A:B][A|E][B][D|B][E]"
+    dag = DAG.from_modelstring(input_modelstring)
+    output_modelstrings = {
+        "[A][B][C|A:B][D|B][E|A]",
+        "[A][B|D][C|A:B][D][E|A]",
+        "[A|E][B][C|A:B][D|B][E]",
+        "[A|E][B|D][C|A:B][D][E]",
+    }
+    assert output_modelstrings == {
+        output.get_modelstring() for output in dag.get_equivalence_class()
+    }
